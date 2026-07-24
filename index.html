@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Space Quest</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Outfit:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <div class="space" aria-hidden="true">
+      <canvas id="starfield"></canvas>
+      <div class="nebula nebula-a"></div>
+      <div class="nebula nebula-b"></div>
+      <div class="scanlines"></div>
+    </div>
+
+    <main class="hero">
+      <h1 class="title" aria-label="Space Quest">
+        <span class="word">
+          <span class="letter" style="--i: 0">S</span>
+          <span class="letter" style="--i: 1">p</span>
+          <span class="letter" style="--i: 2">a</span>
+          <span class="letter" style="--i: 3">c</span>
+          <span class="letter" style="--i: 4">e</span>
+        </span>
+        <span class="word">
+          <span class="letter" style="--i: 5">Q</span>
+          <span class="letter" style="--i: 6">u</span>
+          <span class="letter" style="--i: 7">e</span>
+          <span class="letter" style="--i: 8">s</span>
+          <span class="letter" style="--i: 9">t</span>
+        </span>
+      </h1>
+
+      <button type="button" class="begin-btn" id="begin-quest">
+        <span class="begin-btn__label">Begin Quest</span>
+        <span class="begin-btn__glow" aria-hidden="true"></span>
+      </button>
+    </main>
+
+    <script src="js/starfield.js"></script>
+    <script src="js/main.js"></script>
+  </body>
+</html>
