@@ -1,3 +1,19 @@
+@font-face {
+  font-family: "Baloo 2";
+  src: url("../fonts/baloo2-800.ttf") format("truetype");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Outfit";
+  src: url("../fonts/outfit-600.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --void: #050814;
   --deep: #0a1630;
@@ -5,7 +21,6 @@
   --nebula-cyan: #5eead4;
   --nebula-gold: #f0c75e;
   --star: #eaf2ff;
-  --ink: #07101f;
   --foam: #f7fbff;
   --btn: #ffd56a;
   --btn-ink: #1a1408;
@@ -113,7 +128,9 @@ body {
   justify-content: center;
   gap: clamp(0.55rem, 2.4vw, 1.4rem);
   line-height: 0.95;
-  animation: title-rise 1s var(--ease-out) both;
+  animation:
+    title-rise 1s var(--ease-out) both,
+    bob 3.8s ease-in-out 1s infinite;
 }
 
 .word {
@@ -128,15 +145,12 @@ body {
   justify-content: center;
   font-family: "Baloo 2", system-ui, sans-serif;
   font-weight: 800;
-  font-size: clamp(4.2rem, 14vw, 9.5rem);
+  font-size: clamp(3.8rem, 12vw, 8.5rem);
   color: var(--foam);
   letter-spacing: 0.02em;
-  text-transform: none;
   transform-origin: 50% 70%;
-  animation:
-    bubble-in 0.85s var(--ease-out) both,
-    bob 3.8s ease-in-out infinite;
-  animation-delay: var(--rise), calc(0.9s + var(--rise));
+  animation: bubble-in 0.85s var(--ease-out) both;
+  animation-delay: var(--rise);
   text-shadow:
     0 2px 0 #b8e9ff,
     0 4px 0 #7fd4f0,
@@ -307,7 +321,7 @@ body {
   }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 720px) {
   .title {
     flex-direction: column;
     gap: 0.15rem;
