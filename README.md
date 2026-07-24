@@ -2,13 +2,20 @@
 
 A browser-based, space-themed adventure game.
 
-## Landing page
-
-Open `index.html` in a browser to view the Space Quest title screen.
+## Play
 
 ```bash
-# optional local server
 python3 -m http.server 8080
 ```
 
-Then visit [http://localhost:8080](http://localhost:8080).
+Open [http://localhost:8080](http://localhost:8080), then click **Begin Quest**.
+
+- Move with **Arrow Keys** or **WASD**
+- Walk into an alien to enter the combat screen (turn-based combat comes later)
+- Ship room maps will be expanded as layouts are provided
+
+## Project layout
+
+- `index.html` — title screen, adventure canvas, combat stub
+- `js/game/` — adventure loop, input, rooms, combat placeholder
+- `assets/sprites/` — player and enemy pixel sprites

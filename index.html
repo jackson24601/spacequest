@@ -11,6 +11,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/game.css" />
   </head>
   <body>
     <div class="space" aria-hidden="true">
@@ -20,7 +21,7 @@
       <div class="scanlines"></div>
     </div>
 
-    <main class="hero">
+    <section id="screen-landing" class="screen hero" aria-label="Title screen">
       <h1 class="title" aria-label="Space Quest">
         <span class="word">
           <span class="letter" style="--i: 0">S</span>
@@ -42,9 +43,52 @@
         <span class="begin-btn__label">Begin Quest</span>
         <span class="begin-btn__glow" aria-hidden="true"></span>
       </button>
-    </main>
+    </section>
+
+    <section
+      id="screen-adventure"
+      class="screen"
+      aria-label="Spaceship exploration"
+      hidden
+    >
+      <div class="adventure-frame">
+        <canvas id="adventure-canvas" width="960" height="540"></canvas>
+      </div>
+      <div class="adventure-hud">
+        <span>Explore the ship</span>
+        <span><strong>Tip:</strong> Touch an alien to enter combat</span>
+      </div>
+    </section>
+
+    <section
+      id="screen-combat"
+      class="screen"
+      aria-label="Combat encounter"
+      hidden
+      data-active="false"
+    >
+      <div class="combat-panel">
+        <h2>Combat</h2>
+        <p>
+          A wild <span data-combat-enemy>alien</span> blocks the corridor!
+          Turn-based battles are coming soon.
+        </p>
+        <div class="combat-actions">
+          <button type="button" class="btn-flee" data-combat-flee>
+            Flee to Corridor
+          </button>
+          <button type="button" class="btn-win" data-combat-win>
+            Scare It Off
+          </button>
+        </div>
+      </div>
+    </section>
 
     <script src="js/starfield.js"></script>
-    <script src="js/main.js"></script>
+    <script src="js/game/rooms.js"></script>
+    <script src="js/game/input.js"></script>
+    <script src="js/game/adventure.js"></script>
+    <script src="js/game/combat.js"></script>
+    <script src="js/game/app.js"></script>
   </body>
 </html>

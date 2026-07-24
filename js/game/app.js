@@ -1,0 +1,86 @@
+window.SpaceQuestApp = (() => {
+  let screens;
+  let adventureCanvas;
+
+  function show(screenName) {
+    Object.entries(screens).forEach(([name, el]) => {
+      if (!el) return;
+      el.hidden = name !== screenName;
+      el.setAttribute("aria-hidden", name !== screenName ? "true" : "false");
+    });
+  }
+
+  function startAdventure(options = {}) {
+    show("adventure");
+    window.SpaceQuestAdventure.start({
+      canvas: adventureCanvas,
+      roomId: options.roomId,
+      resumePosition: options.resumePosition,
+      defeatedEnemyId: options.defeatedEnemyId,
+      onCombat: (encounter) => {
+        window.SpaceQuestCombat.open(encounter, {
+          onFlee: () => {
+            // Nudge the player back so they don't instantly re-trigger combat
+            const nudged = {
+              x: Math.max(60, encounter.player.x - 64),
+              y: encounter.player.y,
+            };
+            window.SpaceQuestCombat.close();
+            startAdventure({
+              roomId: encounter.roomId,
+              resumePosition: nudged,
+            });
+          },
+          onWin: () => {
+            window.SpaceQuestCombat.close();
+            startAdventure({
+              roomId: encounter.roomId,
+              resumePosition: encounter.player,
+              defeatedEnemyId: encounter.enemy.id,
+            });
+          },
+        });
+        show("combat");
+      },
+    });
+  }
+
+  function beginQuest() {
+    const landing = screens.landing;
+    landing?.classList.add("is-exiting");
+    window.setTimeout(() => {
+      landing?.classList.remove("is-exiting");
+      startAdventure();
+    }, 450);
+  }
+
+  function init() {
+    screens = {
+      landing: document.getElementById("screen-landing"),
+      adventure: document.getElementById("screen-adventure"),
+      combat: document.getElementById("screen-combat"),
+    };
+    adventureCanvas = document.getElementById("adventure-canvas");
+
+    window.SpaceQuestCombat.mount(screens.combat);
+
+    document
+      .getElementById("begin-quest")
+      ?.addEventListener("click", (event) => {
+        const btn = event.currentTarget;
+        btn.classList.add("is-launching");
+        window.setTimeout(() => {
+          btn.classList.remove("is-launching");
+          beginQuest();
+        }, 500);
+      });
+
+    show("landing");
+  }
+
+  return { init, beginQuest };
+})();
+
+document.addEventListener("DOMContentLoaded", () => {
+  window.SpaceQuestApp.init();
+});

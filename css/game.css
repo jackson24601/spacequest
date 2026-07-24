@@ -1,0 +1,164 @@
+/* Adventure + combat screens layered over the shared space backdrop */
+
+.screen {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.screen[hidden] {
+  display: none !important;
+}
+
+#screen-landing.is-exiting {
+  animation: landing-exit 0.45s var(--ease-out) forwards;
+}
+
+@keyframes landing-exit {
+  to {
+    opacity: 0;
+    transform: scale(1.04);
+    filter: blur(4px);
+  }
+}
+
+#screen-adventure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  padding: 1rem;
+}
+
+.adventure-frame {
+  position: relative;
+  width: min(960px, 100%);
+  aspect-ratio: 16 / 9;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(148, 210, 230, 0.25),
+    0 24px 60px rgba(0, 0, 0, 0.45);
+  background: #101820;
+}
+
+#adventure-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #1a2740;
+}
+
+.adventure-hud {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem 1.25rem;
+  color: rgba(234, 242, 255, 0.82);
+  font-family: "Outfit", sans-serif;
+  font-size: 0.92rem;
+  letter-spacing: 0.02em;
+}
+
+.adventure-hud strong {
+  color: var(--nebula-cyan, #5eead4);
+  font-weight: 600;
+}
+
+#screen-combat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+
+.combat-panel {
+  width: min(560px, 100%);
+  padding: clamp(1.5rem, 4vw, 2.4rem);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(18, 36, 64, 0.92), rgba(8, 14, 28, 0.94));
+  border: 1px solid rgba(94, 234, 212, 0.28);
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.45);
+  text-align: center;
+  color: var(--foam, #f7fbff);
+  font-family: "Outfit", sans-serif;
+}
+
+.combat-panel h2 {
+  margin: 0 0 0.5rem;
+  font-family: "Baloo 2", system-ui, sans-serif;
+  font-size: clamp(2rem, 6vw, 2.8rem);
+  font-weight: 800;
+  color: #fff4c8;
+  text-shadow: 0 4px 0 #a87818;
+}
+
+.combat-panel p {
+  margin: 0 auto 1.5rem;
+  max-width: 36ch;
+  line-height: 1.45;
+  color: rgba(234, 242, 255, 0.86);
+}
+
+.combat-panel [data-combat-enemy] {
+  color: var(--nebula-cyan, #5eead4);
+  font-weight: 600;
+}
+
+.combat-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.combat-actions button {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  font-family: "Outfit", sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: 0.03em;
+  padding: 0.85rem 1.35rem;
+  border-radius: 12px;
+  transition: transform 160ms var(--ease-out, ease), filter 160ms ease;
+}
+
+.combat-actions button:hover,
+.combat-actions button:focus-visible {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+}
+
+.combat-actions button:focus-visible {
+  outline: 3px solid var(--nebula-cyan, #5eead4);
+  outline-offset: 3px;
+}
+
+.btn-flee {
+  color: #eaf2ff;
+  background: linear-gradient(180deg, #3a4d6d, #24324a);
+  box-shadow: 0 6px 0 #152033;
+}
+
+.btn-win {
+  color: var(--btn-ink, #1a1408);
+  background: linear-gradient(180deg, #ffe7a0, #e0b245);
+  box-shadow: 0 6px 0 #b8871d;
+}
+
+@media (max-width: 700px) {
+  .adventure-frame {
+    border-radius: 12px;
+  }
+
+  .adventure-hud {
+    font-size: 0.82rem;
+  }
+}
