@@ -45,18 +45,27 @@ window.SpaceQuestApp = (() => {
     });
   }
 
+  function showBackstory() {
+    show("backstory");
+    screens.backstory?.classList.add("is-entering");
+    window.setTimeout(() => {
+      screens.backstory?.classList.remove("is-entering");
+    }, 700);
+  }
+
   function beginQuest() {
     const landing = screens.landing;
     landing?.classList.add("is-exiting");
     window.setTimeout(() => {
       landing?.classList.remove("is-exiting");
-      startAdventure();
+      showBackstory();
     }, 450);
   }
 
   function init() {
     screens = {
       landing: document.getElementById("screen-landing"),
+      backstory: document.getElementById("screen-backstory"),
       adventure: document.getElementById("screen-adventure"),
       combat: document.getElementById("screen-combat"),
     };
@@ -73,6 +82,17 @@ window.SpaceQuestApp = (() => {
           btn.classList.remove("is-launching");
           beginQuest();
         }, 500);
+      });
+
+    document
+      .getElementById("continue-quest")
+      ?.addEventListener("click", (event) => {
+        const btn = event.currentTarget;
+        btn.classList.add("is-launching");
+        window.setTimeout(() => {
+          btn.classList.remove("is-launching");
+          startAdventure();
+        }, 450);
       });
 
     show("landing");

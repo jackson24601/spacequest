@@ -46,6 +46,45 @@
     </section>
 
     <section
+      id="screen-backstory"
+      class="screen backstory"
+      aria-label="Mission briefing"
+      hidden
+    >
+      <div class="ship-interior" aria-hidden="true">
+        <div class="ship-ceiling"></div>
+        <div class="ship-wall ship-wall-left"></div>
+        <div class="ship-wall ship-wall-right"></div>
+        <div class="ship-viewport">
+          <div class="ship-viewport__glass"></div>
+          <div class="ship-viewport__stars"></div>
+        </div>
+        <div class="ship-console ship-console-left"></div>
+        <div class="ship-console ship-console-right"></div>
+        <div class="ship-floor"></div>
+        <div class="ship-alert"></div>
+      </div>
+
+      <div class="backstory-content">
+        <p class="bubble-story">
+          <span class="bubble-line">The year is 3047.</span>
+          <span class="bubble-line">You were on a voyage to Alpha Centauri.</span>
+          <span class="bubble-line"
+            >But your space ship has been attacked and boarded by murderous
+            space aliens.</span
+          >
+          <span class="bubble-line">Your first mission is to escape.</span>
+          <span class="bubble-line bubble-line--accent">If you can....</span>
+        </p>
+
+        <button type="button" class="begin-btn continue-btn" id="continue-quest">
+          <span class="begin-btn__label">Continue</span>
+          <span class="begin-btn__glow" aria-hidden="true"></span>
+        </button>
+      </div>
+    </section>
+
+    <section
       id="screen-adventure"
       class="screen"
       aria-label="Spaceship exploration"
