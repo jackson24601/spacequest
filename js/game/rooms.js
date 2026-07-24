@@ -19,8 +19,8 @@ window.SpaceQuestRooms = {
         { x: 0, y: 468, w: 960, h: 72 }, // floor trim / lower bulkhead
         { x: 0, y: 72, w: 48, h: 396 }, // left wall
         { x: 912, y: 72, w: 48, h: 396 }, // right wall
-        { x: 300, y: 140, w: 140, h: 56 }, // ceiling conduit
-        { x: 620, y: 320, w: 160, h: 70 }, // cargo crate
+        { x: 280, y: 72, w: 150, h: 64 }, // overhead conduit
+        { x: 640, y: 400, w: 150, h: 68 }, // cargo crate (keeps center path open)
       ],
       // Decorative non-colliding props (drawn only)
       props: [
@@ -32,8 +32,8 @@ window.SpaceQuestRooms = {
       enemies: [
         {
           id: "slime-1",
-          x: 700,
-          y: 240,
+          x: 720,
+          y: 260,
           w: 48,
           h: 72,
           name: "Sludge Alien",

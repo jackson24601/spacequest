@@ -59,8 +59,9 @@ window.SpaceQuestAdventure = (() => {
       y: room.spawn.y,
       w: pw,
       h: ph,
-      // Feet-focused hitbox for tighter corridor feel
+      // Feet-focused box for walls; broader body box for enemy contact
       hit: { ox: pw * 0.2, oy: ph * 0.55, w: pw * 0.6, h: ph * 0.4 },
+      body: { ox: pw * 0.15, oy: ph * 0.2, w: pw * 0.7, h: ph * 0.7 },
     };
 
     enemies = room.enemies.map((enemy) => ({
@@ -70,24 +71,25 @@ window.SpaceQuestAdventure = (() => {
     }));
   }
 
-  function playerHitbox(x = player.x, y = player.y) {
+  function playerBox(part, x = player.x, y = player.y) {
+    const box = player[part];
     return {
-      x: x + player.hit.ox,
-      y: y + player.hit.oy,
-      w: player.hit.w,
-      h: player.hit.h,
+      x: x + box.ox,
+      y: y + box.oy,
+      w: box.w,
+      h: box.h,
     };
   }
 
   function tryMove(dx, dy) {
     if (dx !== 0) {
-      const next = playerHitbox(player.x + dx, player.y);
+      const next = playerBox("hit", player.x + dx, player.y);
       if (!collidesSolids(next, room.solids)) {
         player.x += dx;
       }
     }
     if (dy !== 0) {
-      const next = playerHitbox(player.x, player.y + dy);
+      const next = playerBox("hit", player.x, player.y + dy);
       if (!collidesSolids(next, room.solids)) {
         player.y += dy;
       }
@@ -95,11 +97,11 @@ window.SpaceQuestAdventure = (() => {
   }
 
   function checkEnemyContact() {
-    const hit = playerHitbox();
+    const body = playerBox("body");
     for (const enemy of enemies) {
       if (enemy.defeated) continue;
       const box = { x: enemy.x, y: enemy.y, w: enemy.w, h: enemy.h };
-      if (aabb(hit, box)) {
+      if (aabb(body, box)) {
         return enemy;
       }
     }
