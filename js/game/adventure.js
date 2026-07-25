@@ -137,11 +137,15 @@ window.SpaceQuestAdventure = (() => {
 
   function tryMove(dx, dy) {
     const catalog = window.SpaceQuestRooms;
+    const exits = room.exits || {};
     let moved = false;
 
     if (dx !== 0) {
-      const minX = 8;
-      const maxX = catalog.WIDTH - player.w - 8;
+      // Open exits can be walked to the true screen edge for room transitions
+      const minX = exits.left ? -player.w * 0.35 : 8;
+      const maxX = exits.right
+        ? catalog.WIDTH - player.w * 0.65
+        : catalog.WIDTH - player.w - 8;
       const proposedX = Math.min(maxX, Math.max(minX, player.x + dx));
       const clamped = playerBox("hit", proposedX, player.y);
       if (!collidesSolids(clamped, room.solids) && proposedX !== player.x) {
@@ -151,8 +155,10 @@ window.SpaceQuestAdventure = (() => {
     }
 
     if (dy !== 0) {
-      const minY = 8;
-      const maxY = catalog.HEIGHT - player.h - 8;
+      const minY = exits.up ? -player.h * 0.35 : 8;
+      const maxY = exits.down
+        ? catalog.HEIGHT - player.h * 0.65
+        : catalog.HEIGHT - player.h - 8;
       const proposedY = Math.min(maxY, Math.max(minY, player.y + dy));
       const clamped = playerBox("hit", player.x, proposedY);
       if (!collidesSolids(clamped, room.solids) && proposedY !== player.y) {
@@ -168,40 +174,29 @@ window.SpaceQuestAdventure = (() => {
     if (transitionLock > 0) return null;
     const exits = room.exits || {};
     const catalog = window.SpaceQuestRooms;
-    const cx = player.x + player.w / 2;
-    const cy = player.y + player.h / 2;
-
-    if (exits.left && player.x <= EDGE) {
-      return { roomId: exits.left, entryDir: "right" };
-    }
-    if (exits.right && player.x + player.w >= catalog.WIDTH - EDGE) {
-      return { roomId: exits.right, entryDir: "left" };
-    }
-    if (exits.up && player.y <= EDGE) {
-      return { roomId: exits.up, entryDir: "down" };
-    }
-    if (exits.down && player.y + player.h >= catalog.HEIGHT - EDGE) {
-      return { roomId: exits.down, entryDir: "up" };
-    }
-
-    // Also allow transition when pressing into an exit while near the open door lane
     const dir = window.SpaceQuestInput.vector();
-    if (exits.left && dir.x < 0 && player.x <= EDGE + 8) {
+
+    if (exits.left && (player.x <= EDGE || (dir.x < 0 && player.x <= EDGE + 24))) {
       return { roomId: exits.left, entryDir: "right" };
     }
-    if (exits.right && dir.x > 0 && player.x + player.w >= catalog.WIDTH - EDGE - 8) {
+    if (
+      exits.right &&
+      (player.x + player.w >= catalog.WIDTH - EDGE ||
+        (dir.x > 0 && player.x + player.w >= catalog.WIDTH - EDGE - 24))
+    ) {
       return { roomId: exits.right, entryDir: "left" };
     }
-    if (exits.up && dir.y < 0 && player.y <= EDGE + 8) {
+    if (exits.up && (player.y <= EDGE || (dir.y < 0 && player.y <= EDGE + 24))) {
       return { roomId: exits.up, entryDir: "down" };
     }
-    if (exits.down && dir.y > 0 && player.y + player.h >= catalog.HEIGHT - EDGE - 8) {
+    if (
+      exits.down &&
+      (player.y + player.h >= catalog.HEIGHT - EDGE ||
+        (dir.y > 0 && player.y + player.h >= catalog.HEIGHT - EDGE - 24))
+    ) {
       return { roomId: exits.down, entryDir: "up" };
     }
 
-    // Silence unused warnings in some linters
-    void cx;
-    void cy;
     return null;
   }
 
