@@ -88,9 +88,9 @@ window.SpaceQuestAdventure = (() => {
     const ph = FRAME_H * SPRITE_SCALE;
     const center = defaultSpawn();
     const axes = room.movement?.axes || "horizontal";
-    // Junctions keep the player in the open cross lane so up/down stays available
-    const sideMargin = axes === "both" ? 300 : 36;
-    const endMargin = 36;
+    // Junctions / door-hallways keep the player in the open cross lane
+    const sideMargin = axes === "both" ? 390 : 36;
+    const endMargin = 48;
 
     if (!entryDir) return center;
 

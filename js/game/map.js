@@ -323,69 +323,75 @@ window.SpaceQuestMap = (() => {
     );
 
     if (kind === "mess-hall") {
-      // Cafeteria tables + food dispenser wall
+      // Cafeteria tables + food dispenser wall (clear center aisle)
       props.push(
         { type: "label", x: 390, y: 100, text: "MESS HALL" },
-        { type: "counter", x: 120, y: 130, w: 720, h: 48 },
-        { type: "table", x: 180, y: 250, w: 160, h: 90 },
-        { type: "table", x: 400, y: 250, w: 160, h: 90 },
-        { type: "table", x: 620, y: 250, w: 160, h: 90 },
-        { type: "bench", x: 180, y: 350, w: 160, h: 28 },
-        { type: "bench", x: 400, y: 350, w: 160, h: 28 },
-        { type: "bench", x: 620, y: 350, w: 160, h: 28 },
-        { type: "dispenser", x: 140, y: 145, w: 70, h: 28 },
-        { type: "dispenser", x: 250, y: 145, w: 70, h: 28 },
-        { type: "dispenser", x: 640, y: 145, w: 70, h: 28 },
-        { type: "dispenser", x: 750, y: 145, w: 70, h: 28 }
+        { type: "counter", x: 120, y: 120, w: 280, h: 44 },
+        { type: "counter", x: 560, y: 120, w: 280, h: 44 },
+        { type: "table", x: 140, y: 230, w: 150, h: 84 },
+        { type: "table", x: 140, y: 340, w: 150, h: 84 },
+        { type: "table", x: 670, y: 230, w: 150, h: 84 },
+        { type: "table", x: 670, y: 340, w: 150, h: 84 },
+        { type: "bench", x: 140, y: 430, w: 150, h: 24 },
+        { type: "bench", x: 670, y: 430, w: 150, h: 24 },
+        { type: "dispenser", x: 150, y: 132, w: 70, h: 24 },
+        { type: "dispenser", x: 250, y: 132, w: 70, h: 24 },
+        { type: "dispenser", x: 640, y: 132, w: 70, h: 24 },
+        { type: "dispenser", x: 740, y: 132, w: 70, h: 24 }
       );
       solids.push(
-        { x: 120, y: 130, w: 720, h: 48 },
-        { x: 180, y: 250, w: 160, h: 90 },
-        { x: 400, y: 250, w: 160, h: 90 },
-        { x: 620, y: 250, w: 160, h: 90 }
+        { x: 120, y: 120, w: 280, h: 44 },
+        { x: 560, y: 120, w: 280, h: 44 },
+        { x: 140, y: 230, w: 150, h: 84 },
+        { x: 140, y: 340, w: 150, h: 84 },
+        { x: 670, y: 230, w: 150, h: 84 },
+        { x: 670, y: 340, w: 150, h: 84 }
       );
     } else if (kind === "lodging") {
+      // Bunk rooms on the sides with a clear center corridor to the door
       props.push(
         { type: "label", x: 400, y: 100, text: "LODGING" },
-        { type: "bunk", x: 120, y: 150, w: 210, h: 120 },
-        { type: "bunk", x: 120, y: 300, w: 210, h: 120 },
-        { type: "bunk", x: 630, y: 150, w: 210, h: 120 },
-        { type: "bunk", x: 630, y: 300, w: 210, h: 120 },
-        { type: "locker", x: 370, y: 160, w: 50, h: 110 },
-        { type: "locker", x: 430, y: 160, w: 50, h: 110 },
-        { type: "locker", x: 490, y: 160, w: 50, h: 110 },
-        { type: "locker", x: 370, y: 310, w: 50, h: 110 },
-        { type: "locker", x: 430, y: 310, w: 50, h: 110 },
-        { type: "locker", x: 490, y: 310, w: 50, h: 110 }
+        { type: "bunk", x: 100, y: 140, w: 200, h: 120 },
+        { type: "bunk", x: 100, y: 300, w: 200, h: 120 },
+        { type: "bunk", x: 660, y: 140, w: 200, h: 120 },
+        { type: "bunk", x: 660, y: 300, w: 200, h: 120 },
+        { type: "locker", x: 320, y: 160, w: 48, h: 100 },
+        { type: "locker", x: 320, y: 300, w: 48, h: 100 },
+        { type: "locker", x: 592, y: 160, w: 48, h: 100 },
+        { type: "locker", x: 592, y: 300, w: 48, h: 100 }
       );
       solids.push(
-        { x: 120, y: 150, w: 210, h: 120 },
-        { x: 120, y: 300, w: 210, h: 120 },
-        { x: 630, y: 150, w: 210, h: 120 },
-        { x: 630, y: 300, w: 210, h: 120 },
-        { x: 370, y: 160, w: 170, h: 110 },
-        { x: 370, y: 310, w: 170, h: 110 }
+        { x: 100, y: 140, w: 200, h: 120 },
+        { x: 100, y: 300, w: 200, h: 120 },
+        { x: 660, y: 140, w: 200, h: 120 },
+        { x: 660, y: 300, w: 200, h: 120 },
+        { x: 320, y: 160, w: 48, h: 100 },
+        { x: 320, y: 300, w: 48, h: 100 },
+        { x: 592, y: 160, w: 48, h: 100 },
+        { x: 592, y: 300, w: 48, h: 100 }
       );
     } else if (kind === "supply-room") {
+      // Shelves/crates on the sides with a clear center aisle
       props.push(
         { type: "label", x: 380, y: 100, text: "SUPPLY ROOM" },
-        { type: "shelf", x: 110, y: 140, w: 70, h: 280 },
-        { type: "shelf", x: 210, y: 140, w: 70, h: 280 },
-        { type: "shelf", x: 680, y: 140, w: 70, h: 280 },
-        { type: "shelf", x: 780, y: 140, w: 70, h: 280 },
-        { type: "crate", x: 340, y: 200, w: 90, h: 70 },
-        { type: "crate", x: 450, y: 200, w: 90, h: 70 },
-        { type: "crate", x: 560, y: 200, w: 90, h: 70 },
-        { type: "crate", x: 390, y: 300, w: 100, h: 80 },
-        { type: "crate", x: 510, y: 310, w: 80, h: 70 }
+        { type: "shelf", x: 100, y: 130, w: 70, h: 300 },
+        { type: "shelf", x: 190, y: 130, w: 70, h: 300 },
+        { type: "shelf", x: 700, y: 130, w: 70, h: 300 },
+        { type: "shelf", x: 790, y: 130, w: 70, h: 300 },
+        { type: "crate", x: 300, y: 180, w: 90, h: 70 },
+        { type: "crate", x: 570, y: 180, w: 90, h: 70 },
+        { type: "crate", x: 300, y: 320, w: 90, h: 70 },
+        { type: "crate", x: 570, y: 320, w: 90, h: 70 }
       );
       solids.push(
-        { x: 110, y: 140, w: 70, h: 280 },
-        { x: 210, y: 140, w: 70, h: 280 },
-        { x: 680, y: 140, w: 70, h: 280 },
-        { x: 780, y: 140, w: 70, h: 280 },
-        { x: 340, y: 200, w: 310, h: 70 },
-        { x: 390, y: 300, w: 200, h: 80 }
+        { x: 100, y: 130, w: 70, h: 300 },
+        { x: 190, y: 130, w: 70, h: 300 },
+        { x: 700, y: 130, w: 70, h: 300 },
+        { x: 790, y: 130, w: 70, h: 300 },
+        { x: 300, y: 180, w: 90, h: 70 },
+        { x: 570, y: 180, w: 90, h: 70 },
+        { x: 300, y: 320, w: 90, h: 70 },
+        { x: 570, y: 320, w: 90, h: 70 }
       );
     } else {
       // Locked special rooms still get a simple stub layout (unreachable for now)
