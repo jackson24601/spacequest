@@ -112,12 +112,12 @@ window.SpaceQuestMap = (() => {
       if (exits.up) props.push({ type: "door-top", x: 390, y: 0, w: 180, h: 28 });
       if (exits.down) props.push({ type: "door-top", x: 390, y: 512, w: 180, h: 28 });
     } else {
-      // Crossroads: corner bulkheads only — open lanes through center + exits
+      // Crossroads: corner bulkheads only — wide open plus-shaped lanes
       solids.push(
-        { x: 0, y: 0, w: 300, h: 130 },
-        { x: 660, y: 0, w: 300, h: 130 },
-        { x: 0, y: 410, w: 300, h: 130 },
-        { x: 660, y: 410, w: 300, h: 130 }
+        { x: 0, y: 0, w: 200, h: 120 },
+        { x: 760, y: 0, w: 200, h: 120 },
+        { x: 0, y: 420, w: 200, h: 120 },
+        { x: 760, y: 420, w: 200, h: 120 }
       );
       props.push(
         { type: "panel", x: 210, y: 150, w: 54, h: 80 },
