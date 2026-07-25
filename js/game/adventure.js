@@ -85,19 +85,22 @@ window.SpaceQuestAdventure = (() => {
     const pw = FRAME_W * SPRITE_SCALE;
     const ph = FRAME_H * SPRITE_SCALE;
     const center = defaultSpawn();
-    const margin = 36;
+    const axes = room.movement?.axes || "horizontal";
+    // Junctions keep the player in the open cross lane so up/down stays available
+    const sideMargin = axes === "both" ? 220 : 36;
+    const endMargin = 36;
 
     if (!entryDir) return center;
 
     switch (entryDir) {
       case "left":
-        return { x: margin, y: center.y };
+        return { x: sideMargin, y: center.y };
       case "right":
-        return { x: catalog.WIDTH - pw - margin, y: center.y };
+        return { x: catalog.WIDTH - pw - sideMargin, y: center.y };
       case "up":
-        return { x: center.x, y: margin + 40 };
+        return { x: center.x, y: endMargin + 40 };
       case "down":
-        return { x: center.x, y: catalog.HEIGHT - ph - margin - 20 };
+        return { x: center.x, y: catalog.HEIGHT - ph - endMargin - 20 };
       default:
         return center;
     }
