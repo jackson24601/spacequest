@@ -4,6 +4,7 @@ window.SpaceQuestAdventure = (() => {
   const FRAME_W = 32;
   const FRAME_H = 48;
   const WALK_FPS = 8;
+  const EDGE = 18;
 
   let canvas;
   let ctx;
@@ -16,8 +17,10 @@ window.SpaceQuestAdventure = (() => {
   let playerSheet;
   let enemyImage;
   let onCombat;
+  let onRoomChange;
   let assetsReady = false;
   let alarmPhase = 0;
+  let transitionLock = 0;
 
   function aabb(a, b) {
     return (
@@ -50,36 +53,66 @@ window.SpaceQuestAdventure = (() => {
     assetsReady = true;
   }
 
-  function loadRoom(roomId) {
-    const catalog = window.SpaceQuestRooms;
-    room = catalog.rooms[roomId];
-    if (!room) throw new Error(`Unknown room: ${roomId}`);
-
+  function createPlayer(x, y) {
     const pw = FRAME_W * SPRITE_SCALE;
     const ph = FRAME_H * SPRITE_SCALE;
-
-    // Center the player in the hallway for the starting scene
-    const spawnX =
-      room.spawn?.centered === false
-        ? room.spawn.x
-        : Math.round((catalog.WIDTH - pw) / 2);
-    const spawnY =
-      room.spawn?.y != null
-        ? room.spawn.y
-        : Math.round((catalog.HEIGHT - ph) / 2);
-
-    player = {
-      x: spawnX,
-      y: spawnY,
+    return {
+      x,
+      y,
       w: pw,
       h: ph,
-      facing: 1, // 1 right, -1 left
+      facing: 1,
       moving: false,
       animTime: 0,
       frame: 0,
       hit: { ox: pw * 0.22, oy: ph * 0.58, w: pw * 0.56, h: ph * 0.36 },
       body: { ox: pw * 0.18, oy: ph * 0.2, w: pw * 0.64, h: ph * 0.7 },
     };
+  }
+
+  function defaultSpawn() {
+    const catalog = window.SpaceQuestRooms;
+    const pw = FRAME_W * SPRITE_SCALE;
+    const ph = FRAME_H * SPRITE_SCALE;
+    return {
+      x: Math.round((catalog.WIDTH - pw) / 2),
+      y: room.spawn?.y != null ? room.spawn.y : Math.round((catalog.HEIGHT - ph) / 2),
+    };
+  }
+
+  function spawnFromEntry(entryDir) {
+    const catalog = window.SpaceQuestRooms;
+    const pw = FRAME_W * SPRITE_SCALE;
+    const ph = FRAME_H * SPRITE_SCALE;
+    const center = defaultSpawn();
+    const axes = room.movement?.axes || "horizontal";
+    // Junctions keep the player in the open cross lane so up/down stays available
+    const sideMargin = axes === "both" ? 300 : 36;
+    const endMargin = 36;
+
+    if (!entryDir) return center;
+
+    switch (entryDir) {
+      case "left":
+        return { x: sideMargin, y: center.y };
+      case "right":
+        return { x: catalog.WIDTH - pw - sideMargin, y: center.y };
+      case "up":
+        return { x: center.x, y: endMargin + 40 };
+      case "down":
+        return { x: center.x, y: catalog.HEIGHT - ph - endMargin - 20 };
+      default:
+        return center;
+    }
+  }
+
+  function loadRoom(roomId, entryDir) {
+    const catalog = window.SpaceQuestRooms;
+    room = catalog.rooms[roomId];
+    if (!room) throw new Error(`Unknown room: ${roomId}`);
+
+    const pos = entryDir ? spawnFromEntry(entryDir) : defaultSpawn();
+    player = createPlayer(pos.x, pos.y);
 
     enemies = (room.enemies || []).map((enemy) => ({
       ...enemy,
@@ -88,6 +121,11 @@ window.SpaceQuestAdventure = (() => {
     }));
 
     window.SpaceQuestInput.setAxes(room.movement?.axes || "both");
+    transitionLock = 0.2;
+
+    if (typeof onRoomChange === "function") {
+      onRoomChange(room);
+    }
   }
 
   function playerBox(part, x = player.x, y = player.y) {
@@ -101,11 +139,16 @@ window.SpaceQuestAdventure = (() => {
   }
 
   function tryMove(dx, dy) {
+    const catalog = window.SpaceQuestRooms;
+    const exits = room.exits || {};
     let moved = false;
+
     if (dx !== 0) {
-      // Keep inside canvas horizontally even without side walls
-      const minX = 8;
-      const maxX = window.SpaceQuestRooms.WIDTH - player.w - 8;
+      // Open exits can be walked to the true screen edge for room transitions
+      const minX = exits.left ? -player.w * 0.35 : 8;
+      const maxX = exits.right
+        ? catalog.WIDTH - player.w * 0.65
+        : catalog.WIDTH - player.w - 8;
       const proposedX = Math.min(maxX, Math.max(minX, player.x + dx));
       const clamped = playerBox("hit", proposedX, player.y);
       if (!collidesSolids(clamped, room.solids) && proposedX !== player.x) {
@@ -113,14 +156,51 @@ window.SpaceQuestAdventure = (() => {
         moved = true;
       }
     }
+
     if (dy !== 0) {
-      const next = playerBox("hit", player.x, player.y + dy);
-      if (!collidesSolids(next, room.solids)) {
-        player.y += dy;
+      const minY = exits.up ? -player.h * 0.35 : 8;
+      const maxY = exits.down
+        ? catalog.HEIGHT - player.h * 0.65
+        : catalog.HEIGHT - player.h - 8;
+      const proposedY = Math.min(maxY, Math.max(minY, player.y + dy));
+      const clamped = playerBox("hit", player.x, proposedY);
+      if (!collidesSolids(clamped, room.solids) && proposedY !== player.y) {
+        player.y = proposedY;
         moved = true;
       }
     }
+
     return moved;
+  }
+
+  function checkRoomTransition() {
+    if (transitionLock > 0) return null;
+    const exits = room.exits || {};
+    const catalog = window.SpaceQuestRooms;
+    const dir = window.SpaceQuestInput.vector();
+
+    if (exits.left && (player.x <= EDGE || (dir.x < 0 && player.x <= EDGE + 24))) {
+      return { roomId: exits.left, entryDir: "right" };
+    }
+    if (
+      exits.right &&
+      (player.x + player.w >= catalog.WIDTH - EDGE ||
+        (dir.x > 0 && player.x + player.w >= catalog.WIDTH - EDGE - 24))
+    ) {
+      return { roomId: exits.right, entryDir: "left" };
+    }
+    if (exits.up && (player.y <= EDGE || (dir.y < 0 && player.y <= EDGE + 24))) {
+      return { roomId: exits.up, entryDir: "down" };
+    }
+    if (
+      exits.down &&
+      (player.y + player.h >= catalog.HEIGHT - EDGE ||
+        (dir.y > 0 && player.y + player.h >= catalog.HEIGHT - EDGE - 24))
+    ) {
+      return { roomId: exits.down, entryDir: "up" };
+    }
+
+    return null;
   }
 
   function checkEnemyContact() {
@@ -128,18 +208,16 @@ window.SpaceQuestAdventure = (() => {
     for (const enemy of enemies) {
       if (enemy.defeated) continue;
       const box = { x: enemy.x, y: enemy.y, w: enemy.w, h: enemy.h };
-      if (aabb(body, box)) {
-        return enemy;
-      }
+      if (aabb(body, box)) return enemy;
     }
     return null;
   }
 
-  function drawHallwayBackdrop(time) {
-    const { palette } = room;
+  function drawHallwayBackdrop() {
+    const { palette, movement } = room;
     const { WIDTH, HEIGHT } = window.SpaceQuestRooms;
+    const axes = movement?.axes || "horizontal";
 
-    // Deep metal walls
     const wallGrad = ctx.createLinearGradient(0, 0, 0, HEIGHT);
     wallGrad.addColorStop(0, palette.wallDark);
     wallGrad.addColorStop(0.45, palette.wall);
@@ -147,33 +225,56 @@ window.SpaceQuestAdventure = (() => {
     ctx.fillStyle = wallGrad;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    // Hallway floor band
-    const floorTop = 150;
-    const floorBottom = 390;
-    const floorGrad = ctx.createLinearGradient(0, floorTop, 0, floorBottom);
-    floorGrad.addColorStop(0, "#4a4658");
-    floorGrad.addColorStop(0.5, palette.floor);
-    floorGrad.addColorStop(1, "#3a3746");
-    ctx.fillStyle = floorGrad;
-    ctx.fillRect(0, floorTop, WIDTH, floorBottom - floorTop);
+    if (axes === "vertical") {
+      const floorLeft = 220;
+      const floorRight = 740;
+      const floorGrad = ctx.createLinearGradient(floorLeft, 0, floorRight, 0);
+      floorGrad.addColorStop(0, "#3a3746");
+      floorGrad.addColorStop(0.5, palette.floor);
+      floorGrad.addColorStop(1, "#3a3746");
+      ctx.fillStyle = floorGrad;
+      ctx.fillRect(floorLeft, 0, floorRight - floorLeft, HEIGHT);
 
-    // Perspective floor lines
-    ctx.strokeStyle = "rgba(15, 12, 24, 0.28)";
-    ctx.lineWidth = 2;
-    for (let x = 0; x <= WIDTH; x += 60) {
-      ctx.beginPath();
-      ctx.moveTo(x, floorTop);
-      ctx.lineTo(x * 0.96 + WIDTH * 0.02, floorBottom);
-      ctx.stroke();
-    }
-    for (let y = floorTop; y <= floorBottom; y += 28) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(WIDTH, y);
-      ctx.stroke();
+      ctx.strokeStyle = "rgba(15, 12, 24, 0.28)";
+      ctx.lineWidth = 2;
+      for (let y = 0; y <= HEIGHT; y += 40) {
+        ctx.beginPath();
+        ctx.moveTo(floorLeft, y);
+        ctx.lineTo(floorRight, y);
+        ctx.stroke();
+      }
+      for (let x = floorLeft; x <= floorRight; x += 40) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, HEIGHT);
+        ctx.stroke();
+      }
+    } else {
+      const floorTop = axes === "both" ? 120 : 150;
+      const floorBottom = axes === "both" ? 420 : 390;
+      const floorGrad = ctx.createLinearGradient(0, floorTop, 0, floorBottom);
+      floorGrad.addColorStop(0, "#4a4658");
+      floorGrad.addColorStop(0.5, palette.floor);
+      floorGrad.addColorStop(1, "#3a3746");
+      ctx.fillStyle = floorGrad;
+      ctx.fillRect(0, floorTop, WIDTH, floorBottom - floorTop);
+
+      ctx.strokeStyle = "rgba(15, 12, 24, 0.28)";
+      ctx.lineWidth = 2;
+      for (let x = 0; x <= WIDTH; x += 60) {
+        ctx.beginPath();
+        ctx.moveTo(x, floorTop);
+        ctx.lineTo(x * 0.96 + WIDTH * 0.02, floorBottom);
+        ctx.stroke();
+      }
+      for (let y = floorTop; y <= floorBottom; y += 28) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(WIDTH, y);
+        ctx.stroke();
+      }
     }
 
-    // Ceiling / floor bulkheads from solids
     for (const solid of room.solids) {
       const grad = ctx.createLinearGradient(
         solid.x,
@@ -186,18 +287,28 @@ window.SpaceQuestAdventure = (() => {
       ctx.fillStyle = grad;
       ctx.fillRect(solid.x, solid.y, solid.w, solid.h);
 
-      // Rivet row
       ctx.fillStyle = "rgba(200, 220, 240, 0.18)";
-      const rivetY = solid.y < HEIGHT / 2 ? solid.y + solid.h - 14 : solid.y + 10;
-      for (let x = 24; x < WIDTH; x += 36) {
-        ctx.beginPath();
-        ctx.arc(x, rivetY, 2.2, 0, Math.PI * 2);
-        ctx.fill();
+      if (solid.w >= solid.h) {
+        const rivetY =
+          solid.y < HEIGHT / 2 ? solid.y + solid.h - 14 : solid.y + 10;
+        for (let x = solid.x + 24; x < solid.x + solid.w; x += 36) {
+          ctx.beginPath();
+          ctx.arc(x, rivetY, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else {
+        const rivetX =
+          solid.x < WIDTH / 2 ? solid.x + solid.w - 14 : solid.x + 10;
+        for (let y = solid.y + 24; y < solid.y + solid.h; y += 36) {
+          ctx.beginPath();
+          ctx.arc(rivetX, y, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
     }
   }
 
-  function drawProps(time) {
+  function drawProps() {
     const { palette } = room;
     const pulse = room.alarm
       ? 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(alarmPhase))
@@ -212,7 +323,12 @@ window.SpaceQuestAdventure = (() => {
         ctx.fillStyle = palette.accentWarm;
         ctx.fillRect(prop.x + 10, prop.y + 34, prop.w - 20, 8);
         ctx.fillStyle = palette.metal;
-        ctx.fillRect(prop.x + 10, prop.y + 52, prop.w - 20, Math.max(18, prop.h - 64));
+        ctx.fillRect(
+          prop.x + 10,
+          prop.y + 52,
+          prop.w - 20,
+          Math.max(18, prop.h - 64)
+        );
         ctx.strokeStyle = "rgba(255,255,255,0.08)";
         ctx.strokeRect(prop.x + 0.5, prop.y + 0.5, prop.w - 1, prop.h - 1);
       } else if (prop.type === "stripe") {
@@ -246,6 +362,13 @@ window.SpaceQuestAdventure = (() => {
           6,
           20
         );
+      } else if (prop.type === "door-top") {
+        ctx.fillStyle = "#0d1520";
+        ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
+        ctx.fillStyle = `rgba(255, 77, 77, ${0.25 + pulse * 0.45})`;
+        ctx.fillRect(prop.x + 20, prop.y + 8, prop.w - 40, 6);
+        ctx.fillStyle = palette.metal;
+        ctx.fillRect(prop.x + prop.w / 2 - 10, prop.y + (prop.y < 40 ? prop.h - 8 : 2), 20, 6);
       }
     }
   }
@@ -266,8 +389,6 @@ window.SpaceQuestAdventure = (() => {
     wash.addColorStop(1, `rgba(255, 40, 40, 0)`);
     ctx.fillStyle = wash;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
-
-    // Soft full-frame pulse
     ctx.fillStyle = `rgba(120, 20, 20, ${intensity * 0.55})`;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
   }
@@ -278,8 +399,7 @@ window.SpaceQuestAdventure = (() => {
 
     if (player.moving) {
       player.animTime += dt;
-      const frameCount = 3; // walk frames 1..3 on the sheet (0 is idle)
-      player.frame = 1 + (Math.floor(player.animTime * WALK_FPS) % frameCount);
+      player.frame = 1 + (Math.floor(player.animTime * WALK_FPS) % 3);
     } else {
       player.animTime = 0;
       player.frame = 0;
@@ -287,7 +407,6 @@ window.SpaceQuestAdventure = (() => {
   }
 
   function drawPlayer() {
-    // Shadow
     ctx.fillStyle = "rgba(0,0,0,0.3)";
     ctx.beginPath();
     ctx.ellipse(
@@ -301,7 +420,6 @@ window.SpaceQuestAdventure = (() => {
     );
     ctx.fill();
 
-    // Subtle bob while walking
     const bob = player.moving ? Math.sin(player.animTime * WALK_FPS * Math.PI) * 2 : 0;
 
     ctx.save();
@@ -335,6 +453,13 @@ window.SpaceQuestAdventure = (() => {
     ctx.restore();
   }
 
+  function movementHint() {
+    const axes = room.movement?.axes;
+    if (axes === "horizontal") return "Move with ← → Arrow Keys";
+    if (axes === "vertical") return "Move with ↑ ↓ Arrow Keys";
+    return "Move with Arrow Keys";
+  }
+
   function drawActors() {
     for (const enemy of enemies) {
       if (enemy.defeated) continue;
@@ -357,24 +482,19 @@ window.SpaceQuestAdventure = (() => {
 
     drawPlayer();
 
-    // Room label + alarm cue
     ctx.fillStyle = "rgba(7, 12, 24, 0.55)";
-    ctx.fillRect(16, 16, 240, 36);
+    ctx.fillRect(16, 16, 260, 36);
     ctx.strokeStyle = room.alarm
       ? `rgba(255, 90, 90, ${0.4 + 0.4 * (0.5 + 0.5 * Math.sin(alarmPhase))})`
       : "rgba(62, 199, 192, 0.5)";
-    ctx.strokeRect(16.5, 16.5, 239, 35);
+    ctx.strokeRect(16.5, 16.5, 259, 35);
     ctx.fillStyle = "#eaf2ff";
     ctx.font = "600 16px Outfit, sans-serif";
     ctx.fillText(room.name, 28, 40);
 
     ctx.fillStyle = "rgba(234, 242, 255, 0.75)";
     ctx.font = "500 13px Outfit, sans-serif";
-    const hint =
-      room.movement?.axes === "horizontal"
-        ? "Move with ← → Arrow Keys"
-        : "Move with Arrow Keys or WASD";
-    ctx.fillText(hint, 16, window.SpaceQuestRooms.HEIGHT - 18);
+    ctx.fillText(movementHint(), 16, window.SpaceQuestRooms.HEIGHT - 18);
   }
 
   function frame(time) {
@@ -382,14 +502,19 @@ window.SpaceQuestAdventure = (() => {
     const dt = Math.min((time - lastTime) / 1000, 0.05);
     lastTime = time;
 
-    if (room.alarm) {
-      alarmPhase += dt * 3.2;
-    }
+    if (transitionLock > 0) transitionLock -= dt;
+    if (room.alarm) alarmPhase += dt * 3.2;
 
     const dir = window.SpaceQuestInput.vector();
     const moved = tryMove(dir.x * PLAYER_SPEED * dt, dir.y * PLAYER_SPEED * dt);
     player.moving = moved && (dir.x !== 0 || dir.y !== 0);
     updatePlayerAnim(dt, dir.x);
+
+    const transition = checkRoomTransition();
+    if (transition) {
+      // Keep held keys so walking continues across hallway transitions
+      loadRoom(transition.roomId, transition.entryDir);
+    }
 
     const touched = checkEnemyContact();
     if (touched) {
@@ -404,8 +529,8 @@ window.SpaceQuestAdventure = (() => {
       return;
     }
 
-    drawHallwayBackdrop(time);
-    drawProps(time);
+    drawHallwayBackdrop();
+    drawProps();
     drawActors();
     drawAlarmWash();
     rafId = requestAnimationFrame(frame);
@@ -415,13 +540,14 @@ window.SpaceQuestAdventure = (() => {
     canvas = options.canvas;
     ctx = canvas.getContext("2d");
     onCombat = options.onCombat;
+    onRoomChange = options.onRoomChange;
 
     const catalog = window.SpaceQuestRooms;
     canvas.width = catalog.WIDTH;
     canvas.height = catalog.HEIGHT;
 
     await prepareAssets();
-    loadRoom(options.roomId || catalog.startRoomId);
+    loadRoom(options.roomId || catalog.startRoomId, options.entryDir || null);
 
     if (options.resumePosition) {
       player.x = options.resumePosition.x;
@@ -448,5 +574,9 @@ window.SpaceQuestAdventure = (() => {
     window.SpaceQuestInput.unbind();
   }
 
-  return { start, stop };
+  function getRoom() {
+    return room;
+  }
+
+  return { start, stop, getRoom };
 })();
