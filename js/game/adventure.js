@@ -509,8 +509,8 @@ window.SpaceQuestAdventure = (() => {
 
     const transition = checkRoomTransition();
     if (transition) {
+      // Keep held keys so walking continues across hallway transitions
       loadRoom(transition.roomId, transition.entryDir);
-      window.SpaceQuestInput.clear();
     }
 
     const touched = checkEnemyContact();
