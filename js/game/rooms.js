@@ -9,48 +9,48 @@ window.SpaceQuestRooms = {
   HEIGHT: 540,
 
   rooms: {
-    corridor: {
-      id: "corridor",
-      name: "Upper Corridor",
-      spawn: { x: 120, y: 300 },
-      // Solid blockers: walls, consoles, furniture
+    hallway: {
+      id: "hallway",
+      name: "Main Hallway",
+      // Player is centered in the hallway band (set precisely after sprite size is known)
+      spawn: { x: 448, y: 250 },
+      // This starting scene only allows left / right travel
+      movement: { axes: "horizontal" },
+      alarm: true,
       solids: [
-        { x: 0, y: 0, w: 960, h: 72 }, // ceiling strip
-        { x: 0, y: 468, w: 960, h: 72 }, // floor trim / lower bulkhead
-        { x: 0, y: 72, w: 48, h: 396 }, // left wall
-        { x: 912, y: 72, w: 48, h: 396 }, // right wall
-        { x: 280, y: 72, w: 150, h: 64 }, // overhead conduit
-        { x: 640, y: 400, w: 150, h: 68 }, // cargo crate (keeps center path open)
+        { x: 0, y: 0, w: 960, h: 150 }, // upper bulkhead / ceiling
+        { x: 0, y: 390, w: 960, h: 150 }, // lower bulkhead / floor edge
       ],
-      // Decorative non-colliding props (drawn only)
       props: [
-        { type: "panel", x: 70, y: 110, w: 70, h: 110 },
-        { type: "panel", x: 820, y: 110, w: 70, h: 110 },
-        { type: "door", x: 430, y: 72, w: 100, h: 18 },
-        { type: "stripe", x: 48, y: 250, w: 864, h: 18 },
+        { type: "panel", x: 90, y: 168, w: 64, h: 96 },
+        { type: "panel", x: 806, y: 168, w: 64, h: 96 },
+        { type: "panel", x: 280, y: 168, w: 54, h: 80 },
+        { type: "panel", x: 626, y: 168, w: 54, h: 80 },
+        { type: "stripe", x: 0, y: 318, w: 960, h: 10 },
+        { type: "stripe", x: 0, y: 212, w: 960, h: 8 },
+        { type: "light", x: 160, y: 126, w: 36, h: 16 },
+        { type: "light", x: 360, y: 126, w: 36, h: 16 },
+        { type: "light", x: 560, y: 126, w: 36, h: 16 },
+        { type: "light", x: 760, y: 126, w: 36, h: 16 },
+        { type: "door-side", x: 0, y: 200, w: 28, h: 150 },
+        { type: "door-side", x: 932, y: 200, w: 28, h: 150 },
       ],
-      enemies: [
-        {
-          id: "slime-1",
-          x: 720,
-          y: 260,
-          w: 48,
-          h: 72,
-          name: "Sludge Alien",
-        },
+      // No enemies in the opening hallway beat
+      enemies: [],
+      exits: [
+        // Future room links can hang off left/right ends
       ],
-      // Future: exits to other rooms once maps are provided
-      exits: [],
       palette: {
-        floor: "#6d6a7a",
+        floor: "#5c5868",
         wall: "#2a3d5c",
-        wallDark: "#1a2740",
+        wallDark: "#162338",
         accent: "#3ec7c0",
         accentWarm: "#e0b245",
         metal: "#8fa0b8",
+        alarm: "#ff4d4d",
       },
     },
   },
 
-  startRoomId: "corridor",
+  startRoomId: "hallway",
 };
