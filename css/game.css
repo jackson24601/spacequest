@@ -340,6 +340,46 @@
   background: #101820;
 }
 
+.game-message {
+  position: absolute;
+  left: 50%;
+  bottom: 18%;
+  transform: translateX(-50%);
+  z-index: 3;
+  width: min(86%, 520px);
+  padding: 0.85rem 1.1rem;
+  border-radius: 12px;
+  text-align: center;
+  font-family: "Outfit", sans-serif;
+  font-size: clamp(0.95rem, 2.2vw, 1.1rem);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #fff4c8;
+  background: rgba(12, 18, 32, 0.88);
+  border: 1px solid rgba(255, 90, 90, 0.55);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.game-message[hidden] {
+  display: none !important;
+}
+
+.game-message.is-visible {
+  animation: message-pop 0.35s var(--ease-out, ease) both;
+}
+
+@keyframes message-pop {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
 #adventure-canvas {
   display: block;
   width: 100%;

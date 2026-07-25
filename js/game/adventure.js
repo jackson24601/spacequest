@@ -18,9 +18,11 @@ window.SpaceQuestAdventure = (() => {
   let enemyImage;
   let onCombat;
   let onRoomChange;
+  let onLockedDoor;
   let assetsReady = false;
   let alarmPhase = 0;
   let transitionLock = 0;
+  let lockedDoorCooldown = 0;
 
   function aabb(a, b) {
     return (
@@ -173,6 +175,40 @@ window.SpaceQuestAdventure = (() => {
     return moved;
   }
 
+  function canEnter(roomId) {
+    const target = window.SpaceQuestRooms.rooms[roomId];
+    if (!target) return false;
+    if (!target.locked) return true;
+    return window.SpaceQuestInventory.hasKey(target.keyId);
+  }
+
+  function bounceFromDir(dir) {
+    const nudge = 28;
+    if (dir === "left") player.x += nudge;
+    if (dir === "right") player.x -= nudge;
+    if (dir === "up") player.y += nudge;
+    if (dir === "down") player.y -= nudge;
+  }
+
+  function attemptTransition(roomId, entryDir, fromDir) {
+    if (!roomId) return null;
+    if (canEnter(roomId)) {
+      return { roomId, entryDir };
+    }
+    if (lockedDoorCooldown <= 0) {
+      lockedDoorCooldown = 1.1;
+      bounceFromDir(fromDir);
+      if (typeof onLockedDoor === "function") {
+        onLockedDoor({
+          message: "This door is locked and you do not have the key.",
+          roomId,
+          roomName: window.SpaceQuestRooms.rooms[roomId]?.name || "Door",
+        });
+      }
+    }
+    return null;
+  }
+
   function checkRoomTransition() {
     if (transitionLock > 0) return null;
     const exits = room.exits || {};
@@ -180,24 +216,24 @@ window.SpaceQuestAdventure = (() => {
     const dir = window.SpaceQuestInput.vector();
 
     if (exits.left && (player.x <= EDGE || (dir.x < 0 && player.x <= EDGE + 24))) {
-      return { roomId: exits.left, entryDir: "right" };
+      return attemptTransition(exits.left, "right", "left");
     }
     if (
       exits.right &&
       (player.x + player.w >= catalog.WIDTH - EDGE ||
         (dir.x > 0 && player.x + player.w >= catalog.WIDTH - EDGE - 24))
     ) {
-      return { roomId: exits.right, entryDir: "left" };
+      return attemptTransition(exits.right, "left", "right");
     }
     if (exits.up && (player.y <= EDGE || (dir.y < 0 && player.y <= EDGE + 24))) {
-      return { roomId: exits.up, entryDir: "down" };
+      return attemptTransition(exits.up, "down", "up");
     }
     if (
       exits.down &&
       (player.y + player.h >= catalog.HEIGHT - EDGE ||
         (dir.y > 0 && player.y + player.h >= catalog.HEIGHT - EDGE - 24))
     ) {
-      return { roomId: exits.down, entryDir: "up" };
+      return attemptTransition(exits.down, "up", "down");
     }
 
     return null;
@@ -213,8 +249,8 @@ window.SpaceQuestAdventure = (() => {
     return null;
   }
 
-  function drawHallwayBackdrop() {
-    const { palette, movement } = room;
+  function drawRoomBackdrop() {
+    const { palette, movement, kind } = room;
     const { WIDTH, HEIGHT } = window.SpaceQuestRooms;
     const axes = movement?.axes || "horizontal";
 
@@ -225,7 +261,29 @@ window.SpaceQuestAdventure = (() => {
     ctx.fillStyle = wallGrad;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    if (axes === "vertical") {
+    if (kind === "special") {
+      const floorGrad = ctx.createLinearGradient(0, 70, 0, HEIGHT - 70);
+      floorGrad.addColorStop(0, "#4f5160");
+      floorGrad.addColorStop(0.5, palette.floor);
+      floorGrad.addColorStop(1, "#3b3a48");
+      ctx.fillStyle = floorGrad;
+      ctx.fillRect(70, 70, WIDTH - 140, HEIGHT - 140);
+
+      ctx.strokeStyle = "rgba(15, 12, 24, 0.22)";
+      ctx.lineWidth = 1;
+      for (let x = 70; x < WIDTH - 70; x += 40) {
+        ctx.beginPath();
+        ctx.moveTo(x, 70);
+        ctx.lineTo(x, HEIGHT - 70);
+        ctx.stroke();
+      }
+      for (let y = 70; y < HEIGHT - 70; y += 40) {
+        ctx.beginPath();
+        ctx.moveTo(70, y);
+        ctx.lineTo(WIDTH - 70, y);
+        ctx.stroke();
+      }
+    } else if (axes === "vertical") {
       const floorLeft = 220;
       const floorRight = 740;
       const floorGrad = ctx.createLinearGradient(floorLeft, 0, floorRight, 0);
@@ -350,10 +408,13 @@ window.SpaceQuestAdventure = (() => {
           Math.PI * 2
         );
         ctx.fill();
-      } else if (prop.type === "door-side") {
+      } else if (prop.type === "door-side" || prop.type === "door-locked-side") {
+        const locked = prop.type === "door-locked-side";
         ctx.fillStyle = "#0d1520";
         ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
-        ctx.fillStyle = `rgba(255, 77, 77, ${0.25 + pulse * 0.45})`;
+        ctx.fillStyle = locked
+          ? `rgba(255, 77, 77, ${0.45 + pulse * 0.4})`
+          : `rgba(62, 199, 192, ${0.35 + pulse * 0.35})`;
         ctx.fillRect(prop.x + 8, prop.y + 20, 6, prop.h - 40);
         ctx.fillStyle = palette.metal;
         ctx.fillRect(
@@ -362,13 +423,89 @@ window.SpaceQuestAdventure = (() => {
           6,
           20
         );
-      } else if (prop.type === "door-top") {
+        if (locked) {
+          ctx.fillStyle = "#ffd56a";
+          ctx.fillRect(prop.x + 8, prop.y + prop.h / 2 - 8, 12, 16);
+        }
+      } else if (prop.type === "door-top" || prop.type === "door-locked-top") {
+        const locked = prop.type === "door-locked-top";
         ctx.fillStyle = "#0d1520";
         ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
-        ctx.fillStyle = `rgba(255, 77, 77, ${0.25 + pulse * 0.45})`;
+        ctx.fillStyle = locked
+          ? `rgba(255, 77, 77, ${0.45 + pulse * 0.4})`
+          : `rgba(62, 199, 192, ${0.35 + pulse * 0.35})`;
         ctx.fillRect(prop.x + 20, prop.y + 8, prop.w - 40, 6);
         ctx.fillStyle = palette.metal;
-        ctx.fillRect(prop.x + prop.w / 2 - 10, prop.y + (prop.y < 40 ? prop.h - 8 : 2), 20, 6);
+        ctx.fillRect(
+          prop.x + prop.w / 2 - 10,
+          prop.y + (prop.y < 40 ? prop.h - 8 : 2),
+          20,
+          6
+        );
+        if (locked) {
+          ctx.fillStyle = "#ffd56a";
+          ctx.fillRect(prop.x + prop.w / 2 - 8, prop.y + 6, 16, 12);
+        }
+      } else if (prop.type === "label") {
+        ctx.fillStyle = "rgba(234, 242, 255, 0.85)";
+        ctx.font = "700 18px Outfit, sans-serif";
+        ctx.fillText(prop.text, prop.x, prop.y);
+      } else if (prop.type === "counter") {
+        ctx.fillStyle = "#2f415c";
+        ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
+        ctx.fillStyle = "#3ec7c0";
+        ctx.fillRect(prop.x, prop.y, prop.w, 6);
+      } else if (prop.type === "table") {
+        ctx.fillStyle = "#6d5844";
+        ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
+        ctx.fillStyle = "#8a7055";
+        ctx.fillRect(prop.x + 8, prop.y + 8, prop.w - 16, prop.h - 16);
+      } else if (prop.type === "bench") {
+        ctx.fillStyle = "#3a4558";
+        ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
+      } else if (prop.type === "dispenser") {
+        ctx.fillStyle = "#1d2a3d";
+        ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
+        ctx.fillStyle = "#e0b245";
+        ctx.fillRect(prop.x + 8, prop.y + 8, prop.w - 16, 8);
+      } else if (prop.type === "bunk") {
+        ctx.fillStyle = "#2a3348";
+        ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
+        ctx.fillStyle = "#4b6d8c";
+        ctx.fillRect(prop.x + 10, prop.y + 12, prop.w - 20, 34);
+        ctx.fillRect(prop.x + 10, prop.y + 64, prop.w - 20, 34);
+        ctx.fillStyle = "#d7dee8";
+        ctx.fillRect(prop.x + 16, prop.y + 18, 36, 20);
+        ctx.fillRect(prop.x + 16, prop.y + 70, 36, 20);
+      } else if (prop.type === "locker") {
+        ctx.fillStyle = "#3a4d66";
+        ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
+        ctx.strokeStyle = "rgba(255,255,255,0.15)";
+        ctx.strokeRect(prop.x + 0.5, prop.y + 0.5, prop.w - 1, prop.h - 1);
+        ctx.fillStyle = "#e0b245";
+        ctx.fillRect(prop.x + prop.w - 14, prop.y + prop.h / 2 - 4, 8, 8);
+      } else if (prop.type === "shelf") {
+        ctx.fillStyle = "#2c3a4f";
+        ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
+        for (let y = prop.y + 24; y < prop.y + prop.h - 10; y += 36) {
+          ctx.fillStyle = "#8fa0b8";
+          ctx.fillRect(prop.x + 6, y, prop.w - 12, 6);
+          ctx.fillStyle = "#c45c4a";
+          ctx.fillRect(prop.x + 10, y - 16, 18, 14);
+          ctx.fillStyle = "#3ec7c0";
+          ctx.fillRect(prop.x + 34, y - 16, 18, 14);
+        }
+      } else if (prop.type === "crate") {
+        ctx.fillStyle = "#8a6a3d";
+        ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
+        ctx.strokeStyle = "rgba(30, 20, 10, 0.45)";
+        ctx.strokeRect(prop.x + 0.5, prop.y + 0.5, prop.w - 1, prop.h - 1);
+        ctx.beginPath();
+        ctx.moveTo(prop.x, prop.y);
+        ctx.lineTo(prop.x + prop.w, prop.y + prop.h);
+        ctx.moveTo(prop.x + prop.w, prop.y);
+        ctx.lineTo(prop.x, prop.y + prop.h);
+        ctx.stroke();
       }
     }
   }
@@ -490,7 +627,9 @@ window.SpaceQuestAdventure = (() => {
     ctx.strokeRect(16.5, 16.5, 259, 35);
     ctx.fillStyle = "#eaf2ff";
     ctx.font = "600 16px Outfit, sans-serif";
-    ctx.fillText(room.name, 28, 40);
+    const title =
+      room.name.length > 22 ? `${room.name.slice(0, 20)}…` : room.name;
+    ctx.fillText(title, 28, 40);
 
     ctx.fillStyle = "rgba(234, 242, 255, 0.75)";
     ctx.font = "500 13px Outfit, sans-serif";
@@ -503,6 +642,7 @@ window.SpaceQuestAdventure = (() => {
     lastTime = time;
 
     if (transitionLock > 0) transitionLock -= dt;
+    if (lockedDoorCooldown > 0) lockedDoorCooldown -= dt;
     if (room.alarm) alarmPhase += dt * 3.2;
 
     const dir = window.SpaceQuestInput.vector();
@@ -529,7 +669,7 @@ window.SpaceQuestAdventure = (() => {
       return;
     }
 
-    drawHallwayBackdrop();
+    drawRoomBackdrop();
     drawProps();
     drawActors();
     drawAlarmWash();
@@ -541,6 +681,7 @@ window.SpaceQuestAdventure = (() => {
     ctx = canvas.getContext("2d");
     onCombat = options.onCombat;
     onRoomChange = options.onRoomChange;
+    onLockedDoor = options.onLockedDoor;
 
     const catalog = window.SpaceQuestRooms;
     canvas.width = catalog.WIDTH;
