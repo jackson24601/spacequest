@@ -103,17 +103,14 @@ window.SpaceQuestAdventure = (() => {
   function tryMove(dx, dy) {
     let moved = false;
     if (dx !== 0) {
-      const next = playerBox("hit", player.x + dx, player.y);
       // Keep inside canvas horizontally even without side walls
       const minX = 8;
       const maxX = window.SpaceQuestRooms.WIDTH - player.w - 8;
       const proposedX = Math.min(maxX, Math.max(minX, player.x + dx));
       const clamped = playerBox("hit", proposedX, player.y);
-      if (!collidesSolids(clamped, room.solids)) {
-        if (proposedX !== player.x) {
-          player.x = proposedX;
-          moved = true;
-        }
+      if (!collidesSolids(clamped, room.solids) && proposedX !== player.x) {
+        player.x = proposedX;
+        moved = true;
       }
     }
     if (dy !== 0) {
