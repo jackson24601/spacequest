@@ -10,6 +10,27 @@ window.SpaceQuestApp = (() => {
     });
   }
 
+  function updateAdventureHud(room) {
+    const title = document.querySelector("[data-hud-room]");
+    const tip = document.querySelector("[data-hud-tip]");
+    if (title) {
+      title.textContent =
+        room.kind === "start"
+          ? "Starting Scene — alarms active"
+          : `${room.name} — alarms active`;
+    }
+    if (tip) {
+      const axes = room.movement?.axes;
+      if (axes === "horizontal") {
+        tip.innerHTML = "<strong>Tip:</strong> Use ← → to walk the corridor";
+      } else if (axes === "vertical") {
+        tip.innerHTML = "<strong>Tip:</strong> Use ↑ ↓ to walk the corridor";
+      } else {
+        tip.innerHTML = "<strong>Tip:</strong> Use arrow keys to explore junctions";
+      }
+    }
+  }
+
   function startAdventure(options = {}) {
     show("adventure");
     window.SpaceQuestAdventure.start({
@@ -17,6 +38,7 @@ window.SpaceQuestApp = (() => {
       roomId: options.roomId,
       resumePosition: options.resumePosition,
       defeatedEnemyId: options.defeatedEnemyId,
+      onRoomChange: updateAdventureHud,
       onCombat: (encounter) => {
         window.SpaceQuestCombat.open(encounter, {
           onFlee: () => {
