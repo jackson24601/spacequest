@@ -15,6 +15,8 @@ Open [http://localhost:8080](http://localhost:8080), then click **Begin Quest**.
 - Open special rooms: **Mess Hall**, **Lodging**, **Supply Room**
 - Locked for now: **Mission Control**, **Infirmary**, **Engine Room**
   ("This door is locked and you do not have the key.")
+- Touch an alien to start **turn-based combat** (you act first: Punch / Kick)
+- Player starts at **50 HP**; HP carries between battles
 - Map source files live in `data/`
 
 ## Project layout

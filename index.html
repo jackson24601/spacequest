@@ -107,18 +107,38 @@
       hidden
       data-active="false"
     >
-      <div class="combat-panel">
-        <h2>Combat</h2>
-        <p>
-          A wild <span data-combat-enemy>alien</span> blocks the corridor!
-          Turn-based battles are coming soon.
-        </p>
-        <div class="combat-actions">
-          <button type="button" class="btn-flee" data-combat-flee>
-            Flee to Corridor
+      <div class="battle-modal">
+        <header class="battle-header">
+          <h2>Battle</h2>
+          <p class="battle-sub">Turn-based combat — you act first</p>
+        </header>
+
+        <div class="battle-stage">
+          <div
+            class="battle-side battle-side--player"
+            data-combat-player-side
+          ></div>
+          <div
+            class="battle-side battle-side--enemies"
+            data-combat-enemy-side
+          ></div>
+        </div>
+
+        <div class="battle-log" data-combat-log aria-live="polite"></div>
+
+        <div class="battle-actions" data-combat-actions>
+          <button type="button" class="btn-battle" data-action="punch">
+            Punch
           </button>
-          <button type="button" class="btn-win" data-combat-win>
-            Scare It Off
+          <button type="button" class="btn-battle" data-action="kick">
+            Kick
+          </button>
+        </div>
+
+        <div class="battle-result" data-combat-result hidden>
+          <p data-combat-result-text>Victory!</p>
+          <button type="button" class="btn-battle btn-battle--continue" data-combat-continue>
+            Continue
           </button>
         </div>
       </div>
@@ -126,6 +146,7 @@
 
     <script src="js/starfield.js"></script>
     <script src="js/game/inventory.js"></script>
+    <script src="js/game/player-state.js"></script>
     <script src="js/game/map.js"></script>
     <script src="js/game/rooms.js"></script>
     <script src="js/game/input.js"></script>
