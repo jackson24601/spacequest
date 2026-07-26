@@ -17,7 +17,6 @@ window.SpaceQuestApp = (() => {
     el.hidden = false;
     el.textContent = text;
     el.classList.remove("is-visible");
-    // restart animation
     void el.offsetWidth;
     el.classList.add("is-visible");
     window.clearTimeout(messageTimer);
@@ -30,13 +29,16 @@ window.SpaceQuestApp = (() => {
   function updateAdventureHud(room) {
     const title = document.querySelector("[data-hud-room]");
     const tip = document.querySelector("[data-hud-tip]");
+    const hp = window.SpaceQuestPlayerState.getHp();
+    const maxHp = window.SpaceQuestPlayerState.getMaxHp();
+
     if (title) {
       if (room.kind === "start") {
-        title.textContent = "Starting Scene — alarms active";
+        title.textContent = `Starting Scene — HP ${hp}/${maxHp}`;
       } else if (room.kind === "special") {
-        title.textContent = room.name;
+        title.textContent = `${room.name} — HP ${hp}/${maxHp}`;
       } else {
-        title.textContent = `${room.name} — alarms active`;
+        title.textContent = `${room.name} — HP ${hp}/${maxHp}`;
       }
     }
     if (tip) {
@@ -45,9 +47,11 @@ window.SpaceQuestApp = (() => {
       } else {
         const axes = room.movement?.axes;
         if (axes === "horizontal") {
-          tip.innerHTML = "<strong>Tip:</strong> Use ← → to walk the corridor";
+          tip.innerHTML =
+            "<strong>Tip:</strong> Use ← → to walk; touch aliens to fight";
         } else if (axes === "vertical") {
-          tip.innerHTML = "<strong>Tip:</strong> Use ↑ ↓ to walk the corridor";
+          tip.innerHTML =
+            "<strong>Tip:</strong> Use ↑ ↓ to walk; touch aliens to fight";
         } else {
           tip.innerHTML =
             "<strong>Tip:</strong> Arrow keys move; doorways lead to rooms";
@@ -70,28 +74,23 @@ window.SpaceQuestApp = (() => {
         );
       },
       onCombat: (encounter) => {
+        show("combat");
         window.SpaceQuestCombat.open(encounter, {
-          onFlee: () => {
-            const nudged = {
-              x: Math.max(60, encounter.player.x - 64),
-              y: encounter.player.y,
-            };
-            window.SpaceQuestCombat.close();
-            startAdventure({
-              roomId: encounter.roomId,
-              resumePosition: nudged,
-            });
-          },
           onWin: () => {
-            window.SpaceQuestCombat.close();
             startAdventure({
               roomId: encounter.roomId,
               resumePosition: encounter.player,
               defeatedEnemyId: encounter.enemy.id,
             });
           },
+          onLose: () => {
+            window.SpaceQuestPlayerState.healFull();
+            startAdventure({
+              roomId: "start",
+            });
+            showGameMessage("You wake back in the Starting Scene.");
+          },
         });
-        show("combat");
       },
     });
   }
@@ -105,6 +104,8 @@ window.SpaceQuestApp = (() => {
   }
 
   function beginQuest() {
+    window.SpaceQuestInventory.reset();
+    window.SpaceQuestPlayerState.reset();
     const landing = screens.landing;
     landing?.classList.add("is-exiting");
     window.setTimeout(() => {
@@ -124,6 +125,7 @@ window.SpaceQuestApp = (() => {
 
     window.SpaceQuestCombat.mount(screens.combat);
     window.SpaceQuestInventory.reset();
+    window.SpaceQuestPlayerState.reset();
 
     document
       .getElementById("begin-quest")

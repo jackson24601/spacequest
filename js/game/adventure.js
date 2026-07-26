@@ -662,6 +662,7 @@ window.SpaceQuestAdventure = (() => {
       if (typeof onCombat === "function") {
         onCombat({
           enemy: touched,
+          enemies: [touched],
           roomId: room.id,
           player: { x: player.x, y: player.y },
         });

@@ -412,48 +412,212 @@
   padding: 1.25rem;
 }
 
-.combat-panel {
-  width: min(560px, 100%);
-  padding: clamp(1.5rem, 4vw, 2.4rem);
+.battle-modal {
+  width: min(920px, 100%);
+  padding: clamp(1rem, 3vw, 1.6rem);
   border-radius: 20px;
   background:
-    linear-gradient(180deg, rgba(18, 36, 64, 0.92), rgba(8, 14, 28, 0.94));
+    linear-gradient(180deg, rgba(18, 36, 64, 0.95), rgba(8, 14, 28, 0.96));
   border: 1px solid rgba(94, 234, 212, 0.28);
   box-shadow: 0 24px 50px rgba(0, 0, 0, 0.45);
-  text-align: center;
   color: var(--foam, #f7fbff);
   font-family: "Outfit", sans-serif;
 }
 
-.combat-panel h2 {
-  margin: 0 0 0.5rem;
+.battle-header {
+  text-align: center;
+  margin-bottom: 0.75rem;
+}
+
+.battle-header h2 {
+  margin: 0;
   font-family: "Baloo 2", system-ui, sans-serif;
-  font-size: clamp(2rem, 6vw, 2.8rem);
+  font-size: clamp(1.8rem, 5vw, 2.4rem);
   font-weight: 800;
   color: #fff4c8;
-  text-shadow: 0 4px 0 #a87818;
+  text-shadow: 0 3px 0 #a87818;
 }
 
-.combat-panel p {
-  margin: 0 auto 1.5rem;
-  max-width: 36ch;
-  line-height: 1.45;
-  color: rgba(234, 242, 255, 0.86);
+.battle-sub {
+  margin: 0.2rem 0 0;
+  color: rgba(234, 242, 255, 0.75);
+  font-size: 0.95rem;
 }
 
-.combat-panel [data-combat-enemy] {
-  color: var(--nebula-cyan, #5eead4);
+.battle-stage {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  min-height: 260px;
+  padding: 1rem;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, #7ec8c4 0%, #cbb892 55%, #b8955c 100%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.18);
+}
+
+.battle-side {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 1rem;
+  padding-bottom: 0.5rem;
+}
+
+.battle-side--player {
+  justify-content: flex-start;
+  padding-left: 0.5rem;
+}
+
+.battle-side--enemies {
+  justify-content: flex-end;
+  padding-right: 0.5rem;
+}
+
+.battle-unit {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 110px;
+}
+
+.battle-unit.is-selected .battle-sprite-wrap {
+  outline: 2px solid #ffe08a;
+  outline-offset: 4px;
+}
+
+.battle-unit.is-down {
+  opacity: 0.45;
+  filter: grayscale(0.4);
+}
+
+.battle-hp {
+  width: 96px;
+  text-align: center;
+}
+
+.battle-hp__bar {
+  height: 10px;
+  border-radius: 3px;
+  border: 2px solid #111;
+  background: #1a1a1a;
+  overflow: hidden;
+}
+
+.battle-hp__fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(180deg, #ffe566, #e0b245);
+  transition: width 220ms ease;
+}
+
+.battle-hp__text {
+  margin-top: 2px;
+  font-size: 0.78rem;
   font-weight: 600;
+  color: #142033;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
-.combat-actions {
+.battle-sprite-wrap {
+  position: relative;
+  width: 96px;
+  height: 120px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  border-radius: 10px;
+}
+
+.battle-sprite {
+  width: 72px;
+  height: auto;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  filter: drop-shadow(0 8px 0 rgba(0, 0, 0, 0.28));
+}
+
+.battle-side--enemies .battle-sprite {
+  transform: scaleX(-1);
+}
+
+.battle-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #142033;
+}
+
+.battle-float {
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  transform: translateX(-50%);
+  font-family: "Baloo 2", system-ui, sans-serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.battle-float.is-show {
+  animation: float-pop 0.7s ease forwards;
+}
+
+.battle-float--hit {
+  color: #fff;
+  -webkit-text-stroke: 3px #c62828;
+  paint-order: stroke fill;
+}
+
+.battle-float--miss {
+  color: #f4fbff;
+  -webkit-text-stroke: 3px #334155;
+  paint-order: stroke fill;
+}
+
+@keyframes float-pop {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px) scale(0.9);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-28px) scale(1.05);
+  }
+}
+
+.battle-log {
+  margin-top: 0.85rem;
+  max-height: 96px;
+  overflow: auto;
+  padding: 0.65rem 0.8rem;
+  border-radius: 10px;
+  background: rgba(7, 12, 24, 0.55);
+  border: 1px solid rgba(148, 210, 230, 0.2);
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+
+.battle-log p {
+  margin: 0.15rem 0;
+}
+
+.battle-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
   justify-content: center;
+  margin-top: 0.9rem;
 }
 
-.combat-actions button {
+.btn-battle {
   appearance: none;
   border: 0;
   cursor: pointer;
@@ -461,32 +625,69 @@
   font-weight: 600;
   font-size: 1rem;
   letter-spacing: 0.03em;
-  padding: 0.85rem 1.35rem;
+  padding: 0.85rem 1.45rem;
   border-radius: 12px;
+  color: var(--btn-ink, #1a1408);
+  background: linear-gradient(180deg, #ffe7a0, #e0b245);
+  box-shadow: 0 6px 0 #b8871d;
   transition: transform 160ms var(--ease-out, ease), filter 160ms ease;
 }
 
-.combat-actions button:hover,
-.combat-actions button:focus-visible {
+.btn-battle:hover,
+.btn-battle:focus-visible {
   transform: translateY(-2px);
   filter: brightness(1.05);
 }
 
-.combat-actions button:focus-visible {
+.btn-battle:disabled {
+  cursor: default;
+  opacity: 0.55;
+  transform: none;
+  filter: none;
+}
+
+.btn-battle:focus-visible {
   outline: 3px solid var(--nebula-cyan, #5eead4);
   outline-offset: 3px;
 }
 
-.btn-flee {
-  color: #eaf2ff;
-  background: linear-gradient(180deg, #3a4d6d, #24324a);
-  box-shadow: 0 6px 0 #152033;
+.btn-battle--continue {
+  background: linear-gradient(180deg, #9af0e4, #3ec7c0);
+  box-shadow: 0 6px 0 #1f7f9a;
+  color: #062028;
 }
 
-.btn-win {
-  color: var(--btn-ink, #1a1408);
-  background: linear-gradient(180deg, #ffe7a0, #e0b245);
-  box-shadow: 0 6px 0 #b8871d;
+.battle-result {
+  margin-top: 0.9rem;
+  text-align: center;
+  padding: 0.85rem;
+  border-radius: 12px;
+  background: rgba(7, 12, 24, 0.6);
+  border: 1px solid rgba(240, 199, 94, 0.35);
+}
+
+.battle-result p {
+  margin: 0 0 0.75rem;
+  font-family: "Baloo 2", system-ui, sans-serif;
+  font-size: 1.4rem;
+  color: #fff4c8;
+}
+
+.battle-result[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 700px) {
+  .battle-stage {
+    grid-template-columns: 1fr;
+    min-height: 340px;
+  }
+
+  .battle-side--player,
+  .battle-side--enemies {
+    justify-content: center;
+    padding: 0;
+  }
 }
 
 @media (max-width: 700px) {
