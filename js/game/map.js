@@ -458,56 +458,7 @@ window.SpaceQuestMap = (() => {
       }
     }
 
-    // Patrol aliens in hallways (touch to start combat)
-    const encounters = {
-      "hallway-2-6": [
-        {
-          id: "slime-east-1",
-          x: 700,
-          y: 250,
-          w: 56,
-          h: 70,
-          name: "Sludge Alien",
-          hp: 5,
-          maxHp: 5,
-          attackDamage: 1,
-          hitChance: 0.5,
-        },
-      ],
-      "hallway-2-3": [
-        {
-          id: "slime-west-1",
-          x: 680,
-          y: 250,
-          w: 56,
-          h: 70,
-          name: "Sludge Alien",
-          hp: 5,
-          maxHp: 5,
-          attackDamage: 1,
-          hitChance: 0.5,
-        },
-      ],
-      "hallway-1-8": [
-        {
-          id: "slime-spine-1",
-          x: 460,
-          y: 180,
-          w: 56,
-          h: 70,
-          name: "Sludge Alien",
-          hp: 6,
-          maxHp: 6,
-          attackDamage: 1,
-          hitChance: 0.5,
-        },
-      ],
-    };
-
-    for (const [roomId, list] of Object.entries(encounters)) {
-      if (rooms[roomId]) rooms[roomId].enemies = list;
-    }
-
+    // Hallway aliens spawn dynamically on room entry (see adventure.js).
     return { rooms, startRoomId };
   }
 

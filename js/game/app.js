@@ -48,10 +48,10 @@ window.SpaceQuestApp = (() => {
         const axes = room.movement?.axes;
         if (axes === "horizontal") {
           tip.innerHTML =
-            "<strong>Tip:</strong> Use ← → to walk; touch aliens to fight";
+            "<strong>Tip:</strong> Use ← → ; aliens may appear and chase you";
         } else if (axes === "vertical") {
           tip.innerHTML =
-            "<strong>Tip:</strong> Use ↑ ↓ to walk; touch aliens to fight";
+            "<strong>Tip:</strong> Use ↑ ↓ ; aliens may appear and chase you";
         } else {
           tip.innerHTML =
             "<strong>Tip:</strong> Arrow keys move; doorways lead to rooms";

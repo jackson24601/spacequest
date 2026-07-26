@@ -15,7 +15,9 @@ Open [http://localhost:8080](http://localhost:8080), then click **Begin Quest**.
 - Open special rooms: **Mess Hall**, **Lodging**, **Supply Room**
 - Locked for now: **Mission Control**, **Infirmary**, **Engine Room**
   ("This door is locked and you do not have the key.")
-- Touch an alien to start **turn-based combat** (you act first: Punch / Kick)
+- Hallways may spawn a **Level 1 Alien** (50% chance, 1s after entry); it chases you
+- Touch triggers **turn-based combat** (you act first: Punch / Kick)
+- Level 1 Alien: **5 HP**, **25%** hit chance, **1** damage
 - Player starts at **50 HP**; HP carries between battles
 - Map source files live in `data/`
 

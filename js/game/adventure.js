@@ -5,6 +5,8 @@ window.SpaceQuestAdventure = (() => {
   const FRAME_H = 48;
   const WALK_FPS = 8;
   const EDGE = 18;
+  const ALIEN_SPAWN_DELAY = 1;
+  const ALIEN_SPAWN_CHANCE = 0.5;
 
   let canvas;
   let ctx;
@@ -23,6 +25,8 @@ window.SpaceQuestAdventure = (() => {
   let alarmPhase = 0;
   let transitionLock = 0;
   let lockedDoorCooldown = 0;
+  let alienSpawnTimer = null;
+  let suppressAlienSpawn = false;
 
   function aabb(a, b) {
     return (
@@ -50,9 +54,138 @@ window.SpaceQuestAdventure = (() => {
     if (assetsReady) return;
     [playerSheet, enemyImage] = await Promise.all([
       loadImage("assets/sprites/player-walk.png"),
-      loadImage("assets/sprites/enemy.png"),
+      loadImage("assets/sprites/alien-l1.png"),
     ]);
     assetsReady = true;
+  }
+
+  function clearAlienSpawnTimer() {
+    if (alienSpawnTimer != null) {
+      window.clearTimeout(alienSpawnTimer);
+      alienSpawnTimer = null;
+    }
+  }
+
+  function isHallwayScene(nextRoom = room) {
+    return nextRoom?.kind === "hallway" || nextRoom?.kind === "start";
+  }
+
+  function enemyBox(enemy, x = enemy.x, y = enemy.y) {
+    return {
+      x: x + enemy.w * 0.18,
+      y: y + enemy.h * 0.2,
+      w: enemy.w * 0.64,
+      h: enemy.h * 0.7,
+    };
+  }
+
+  function findAlienSpawnPoint() {
+    const catalog = window.SpaceQuestRooms;
+    const template = window.SpaceQuestEnemies.LEVEL_ONE_ALIEN;
+    const pw = template.w;
+    const ph = template.h;
+    const candidates = [];
+
+    // Prefer spawning away from the player along open corridor lanes
+    if (room.movement?.axes === "vertical") {
+      candidates.push(
+        { x: Math.round((catalog.WIDTH - pw) / 2), y: 40 },
+        { x: Math.round((catalog.WIDTH - pw) / 2), y: catalog.HEIGHT - ph - 40 }
+      );
+    } else {
+      candidates.push(
+        { x: 48, y: 250 },
+        { x: catalog.WIDTH - pw - 48, y: 250 },
+        { x: 48, y: 220 },
+        { x: catalog.WIDTH - pw - 48, y: 280 }
+      );
+    }
+
+    if (room.movement?.axes === "both") {
+      candidates.push(
+        { x: Math.round((catalog.WIDTH - pw) / 2), y: 40 },
+        { x: Math.round((catalog.WIDTH - pw) / 2), y: catalog.HEIGHT - ph - 40 }
+      );
+    }
+
+    const ranked = candidates
+      .map((pos) => {
+        const box = { x: pos.x + pw * 0.18, y: pos.y + ph * 0.2, w: pw * 0.64, h: ph * 0.7 };
+        const blocked = collidesSolids(box, room.solids);
+        const dx = pos.x + pw / 2 - (player.x + player.w / 2);
+        const dy = pos.y + ph / 2 - (player.y + player.h / 2);
+        const dist = Math.hypot(dx, dy);
+        return { pos, blocked, dist };
+      })
+      .filter((entry) => !entry.blocked && entry.dist > 140)
+      .sort((a, b) => b.dist - a.dist);
+
+    if (ranked.length) return ranked[0].pos;
+
+    // Fallback: opposite horizontal side
+    const fallbackX =
+      player.x < catalog.WIDTH / 2 ? catalog.WIDTH - pw - 48 : 48;
+    return { x: fallbackX, y: Math.max(40, Math.min(catalog.HEIGHT - ph - 40, player.y)) };
+  }
+
+  function spawnLevelOneAlien() {
+    if (!running || !isHallwayScene() || enemies.some((e) => !e.defeated)) return;
+    const point = findAlienSpawnPoint();
+    const alien = window.SpaceQuestEnemies.createLevelOneAlien({
+      x: point.x,
+      y: point.y,
+    });
+    enemies = [alien];
+  }
+
+  function scheduleHallwayAlienSpawn() {
+    clearAlienSpawnTimer();
+    if (suppressAlienSpawn || !isHallwayScene()) return;
+
+    alienSpawnTimer = window.setTimeout(() => {
+      alienSpawnTimer = null;
+      if (!running || !isHallwayScene() || suppressAlienSpawn) return;
+      if (Math.random() < ALIEN_SPAWN_CHANCE) {
+        spawnLevelOneAlien();
+      }
+    }, ALIEN_SPAWN_DELAY * 1000);
+  }
+
+  function tryMoveEnemy(enemy, dx, dy) {
+    if (dx !== 0) {
+      const next = enemyBox(enemy, enemy.x + dx, enemy.y);
+      const minX = 8;
+      const maxX = window.SpaceQuestRooms.WIDTH - enemy.w - 8;
+      const proposedX = Math.min(maxX, Math.max(minX, enemy.x + dx));
+      const clamped = enemyBox(enemy, proposedX, enemy.y);
+      if (!collidesSolids(clamped, room.solids)) {
+        enemy.x = proposedX;
+      }
+    }
+    if (dy !== 0) {
+      const minY = 8;
+      const maxY = window.SpaceQuestRooms.HEIGHT - enemy.h - 8;
+      const proposedY = Math.min(maxY, Math.max(minY, enemy.y + dy));
+      const clamped = enemyBox(enemy, enemy.x, proposedY);
+      if (!collidesSolids(clamped, room.solids)) {
+        enemy.y = proposedY;
+      }
+    }
+  }
+
+  function updateEnemies(dt) {
+    for (const enemy of enemies) {
+      if (enemy.defeated) continue;
+      const cx = player.x + player.w / 2;
+      const cy = player.y + player.h / 2;
+      const ex = enemy.x + enemy.w / 2;
+      const ey = enemy.y + enemy.h / 2;
+      const dx = cx - ex;
+      const dy = cy - ey;
+      const dist = Math.hypot(dx, dy) || 1;
+      const speed = enemy.speed || 95;
+      tryMoveEnemy(enemy, (dx / dist) * speed * dt, (dy / dist) * speed * dt);
+    }
   }
 
   function createPlayer(x, y) {
@@ -116,11 +249,8 @@ window.SpaceQuestAdventure = (() => {
     const pos = entryDir ? spawnFromEntry(entryDir) : defaultSpawn();
     player = createPlayer(pos.x, pos.y);
 
-    enemies = (room.enemies || []).map((enemy) => ({
-      ...enemy,
-      defeated: false,
-      bob: Math.random() * Math.PI * 2,
-    }));
+    enemies = [];
+    clearAlienSpawnTimer();
 
     window.SpaceQuestInput.setAxes(room.movement?.axes || "both");
     transitionLock = 0.2;
@@ -128,6 +258,11 @@ window.SpaceQuestAdventure = (() => {
     if (typeof onRoomChange === "function") {
       onRoomChange(room);
     }
+
+    if (!suppressAlienSpawn) {
+      scheduleHallwayAlienSpawn();
+    }
+    suppressAlienSpawn = false;
   }
 
   function playerBox(part, x = player.x, y = player.y) {
@@ -649,6 +784,7 @@ window.SpaceQuestAdventure = (() => {
     const moved = tryMove(dir.x * PLAYER_SPEED * dt, dir.y * PLAYER_SPEED * dt);
     player.moving = moved && (dir.x !== 0 || dir.y !== 0);
     updatePlayerAnim(dt, dir.x);
+    updateEnemies(dt);
 
     const transition = checkRoomTransition();
     if (transition) {
@@ -658,6 +794,7 @@ window.SpaceQuestAdventure = (() => {
 
     const touched = checkEnemyContact();
     if (touched) {
+      clearAlienSpawnTimer();
       stop();
       if (typeof onCombat === "function") {
         onCombat({
@@ -689,16 +826,13 @@ window.SpaceQuestAdventure = (() => {
     canvas.height = catalog.HEIGHT;
 
     await prepareAssets();
+    // After winning a fight, skip an immediate re-roll in the same room visit
+    suppressAlienSpawn = Boolean(options.defeatedEnemyId);
     loadRoom(options.roomId || catalog.startRoomId, options.entryDir || null);
 
     if (options.resumePosition) {
       player.x = options.resumePosition.x;
       player.y = options.resumePosition.y;
-    }
-
-    if (options.defeatedEnemyId) {
-      const foe = enemies.find((e) => e.id === options.defeatedEnemyId);
-      if (foe) foe.defeated = true;
     }
 
     window.SpaceQuestInput.bind();
@@ -712,6 +846,7 @@ window.SpaceQuestAdventure = (() => {
 
   function stop() {
     running = false;
+    clearAlienSpawnTimer();
     cancelAnimationFrame(rafId);
     window.SpaceQuestInput.unbind();
   }
