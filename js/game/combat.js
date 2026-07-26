@@ -57,9 +57,9 @@ window.SpaceQuestCombat = (() => {
     continueBtn?.addEventListener("click", () => {
       if (!handlers.outcome) return;
       const outcome = handlers.outcome;
-      handlers = {};
       close();
       outcome();
+      handlers = {};
     });
   }
 
@@ -212,17 +212,19 @@ window.SpaceQuestCombat = (() => {
     setActionsEnabled(false);
 
     if (result === "win") {
+      const onWin = handlers.onWin;
       resultTextEl.textContent = "Victory! The alien collapses.";
       log("You won the battle.");
       handlers.outcome = () => {
-        if (typeof handlers.onWin === "function") handlers.onWin();
+        if (typeof onWin === "function") onWin();
       };
     } else {
+      const onLose = handlers.onLose;
       window.SpaceQuestPlayerState.setHp(0);
       resultTextEl.textContent = "You were defeated...";
       log("You were defeated.");
       handlers.outcome = () => {
-        if (typeof handlers.onLose === "function") handlers.onLose();
+        if (typeof onLose === "function") onLose();
       };
     }
 
