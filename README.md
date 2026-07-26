@@ -12,8 +12,9 @@ Open [http://localhost:8080](http://localhost:8080), then click **Begin Quest**.
 
 - Read the ship backstory briefing, then press **Continue**
 - Start in the **Starting Scene**; walk connected **Hallway** tiles from the ship map
-- Most hallways are left/right; the vertical spine allows up/down; the junction allows both
-- Special rooms (Mess Hall, Engine Room, etc.) come later
+- Open special rooms: **Mess Hall**, **Lodging**, **Supply Room**
+- Locked for now: **Mission Control**, **Infirmary**, **Engine Room**
+  ("This door is locked and you do not have the key.")
 - Map source files live in `data/`
 
 ## Project layout

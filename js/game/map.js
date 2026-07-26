@@ -1,6 +1,6 @@
 /**
  * Spaceship grid from the provided map.
- * Empty / black cells = outspace. Special rooms are reserved for later.
+ * Empty / black cells = outspace.
  *
  * Grid rows (top → bottom), cols (left → right):
  *
@@ -15,9 +15,6 @@ window.SpaceQuestMap = (() => {
   const WIDTH = 960;
   const HEIGHT = 540;
 
-  const WALKABLE = new Set(["Hallway", "Starting Scene"]);
-
-  // Compact content grid (5 rows × 10 cols), matching the CSV content block.
   const GRID = [
     ["", "", "", "", "", "", "", "", "Hallway", ""],
     ["", "", "", "", "Mess Hall", "", "Supply Room", "", "Hallway", ""],
@@ -44,6 +41,41 @@ window.SpaceQuestMap = (() => {
     right: { dr: 0, dc: 1, opposite: "left" },
   };
 
+  const SPECIAL = {
+    "Mess Hall": {
+      id: "mess-hall",
+      locked: false,
+      keyId: null,
+    },
+    "Supply Room": {
+      id: "supply-room",
+      locked: false,
+      keyId: null,
+    },
+    Lodging: {
+      id: "lodging",
+      locked: false,
+      keyId: null,
+    },
+    Infirmary: {
+      id: "infirmary",
+      locked: true,
+      keyId: "infirmary-key",
+    },
+    "Mission Control": {
+      id: "mission-control",
+      locked: true,
+      keyId: "mission-control-key",
+    },
+    "Engine Room": {
+      id: "engine-room",
+      locked: true,
+      keyId: "engine-room-key",
+    },
+  };
+
+  const CONNECTED = new Set(["Hallway", "Starting Scene", ...Object.keys(SPECIAL)]);
+
   const PALETTE = {
     floor: "#5c5868",
     wall: "#2a3d5c",
@@ -58,7 +90,12 @@ window.SpaceQuestMap = (() => {
     const label = GRID[row]?.[col] || "";
     if (label === "Starting Scene") return "start";
     if (label === "Hallway") return `hallway-${row}-${col}`;
+    if (SPECIAL[label]) return SPECIAL[label].id;
     return null;
+  }
+
+  function labelAt(row, col) {
+    return GRID[row]?.[col] || "";
   }
 
   function axesFromExits(exits) {
@@ -69,11 +106,53 @@ window.SpaceQuestMap = (() => {
     return "horizontal";
   }
 
-  function buildLayout(exits, axes) {
+  function doorProp(dir, locked) {
+    if (dir === "left") {
+      return {
+        type: locked ? "door-locked-side" : "door-side",
+        x: 0,
+        y: 200,
+        w: 28,
+        h: 150,
+        label: locked ? "Locked" : "Open",
+      };
+    }
+    if (dir === "right") {
+      return {
+        type: locked ? "door-locked-side" : "door-side",
+        x: 932,
+        y: 200,
+        w: 28,
+        h: 150,
+        label: locked ? "Locked" : "Open",
+      };
+    }
+    if (dir === "up") {
+      return {
+        type: locked ? "door-locked-top" : "door-top",
+        x: 390,
+        y: 0,
+        w: 180,
+        h: 28,
+        label: locked ? "Locked" : "Open",
+      };
+    }
+    return {
+      type: locked ? "door-locked-top" : "door-top",
+      x: 390,
+      y: 512,
+      w: 180,
+      h: 28,
+      label: locked ? "Locked" : "Open",
+    };
+  }
+
+  function buildHallwayLayout(exits, lockedDirs) {
     const solids = [];
     const props = [];
+    const axes = axesFromExits(exits);
+    const gap = 200;
 
-    // Shared alarm lights along the ceiling line
     props.push(
       { type: "light", x: 160, y: 126, w: 36, h: 16 },
       { type: "light", x: 360, y: 126, w: 36, h: 16 },
@@ -81,22 +160,7 @@ window.SpaceQuestMap = (() => {
       { type: "light", x: 760, y: 126, w: 36, h: 16 }
     );
 
-    if (axes === "horizontal") {
-      solids.push(
-        { x: 0, y: 0, w: WIDTH, h: 150 },
-        { x: 0, y: 390, w: WIDTH, h: 150 }
-      );
-      props.push(
-        { type: "panel", x: 90, y: 168, w: 64, h: 96 },
-        { type: "panel", x: 806, y: 168, w: 64, h: 96 },
-        { type: "panel", x: 280, y: 168, w: 54, h: 80 },
-        { type: "panel", x: 626, y: 168, w: 54, h: 80 },
-        { type: "stripe", x: 0, y: 318, w: WIDTH, h: 10 },
-        { type: "stripe", x: 0, y: 212, w: WIDTH, h: 8 }
-      );
-      if (exits.left) props.push({ type: "door-side", x: 0, y: 200, w: 28, h: 150 });
-      if (exits.right) props.push({ type: "door-side", x: 932, y: 200, w: 28, h: 150 });
-    } else if (axes === "vertical") {
+    if (axes === "vertical") {
       solids.push(
         { x: 0, y: 0, w: 220, h: HEIGHT },
         { x: 740, y: 0, w: 220, h: HEIGHT }
@@ -109,29 +173,236 @@ window.SpaceQuestMap = (() => {
         { type: "stripe", x: 220, y: 160, w: 10, h: 220 },
         { type: "stripe", x: 730, y: 160, w: 10, h: 220 }
       );
-      if (exits.up) props.push({ type: "door-top", x: 390, y: 0, w: 180, h: 28 });
-      if (exits.down) props.push({ type: "door-top", x: 390, y: 512, w: 180, h: 28 });
-    } else {
-      // Crossroads: corner bulkheads only — wide open plus-shaped lanes
+    } else if (axes === "horizontal") {
       solids.push(
-        { x: 0, y: 0, w: 200, h: 120 },
-        { x: 760, y: 0, w: 200, h: 120 },
-        { x: 0, y: 420, w: 200, h: 120 },
-        { x: 760, y: 420, w: 200, h: 120 }
+        { x: 0, y: 0, w: WIDTH, h: 150 },
+        { x: 0, y: 390, w: WIDTH, h: 150 }
       );
+      props.push(
+        { type: "panel", x: 90, y: 168, w: 64, h: 96 },
+        { type: "panel", x: 806, y: 168, w: 64, h: 96 },
+        { type: "panel", x: 280, y: 168, w: 54, h: 80 },
+        { type: "panel", x: 626, y: 168, w: 54, h: 80 },
+        { type: "stripe", x: 0, y: 318, w: WIDTH, h: 10 },
+        { type: "stripe", x: 0, y: 212, w: WIDTH, h: 8 }
+      );
+    } else {
+      // Plus-shaped corridor with door gaps on connected sides
+      const topH = 120;
+      const botY = 420;
+      const sideW = 200;
+
+      if (exits.up) {
+        solids.push(
+          { x: 0, y: 0, w: (WIDTH - gap) / 2, h: topH },
+          { x: (WIDTH + gap) / 2, y: 0, w: (WIDTH - gap) / 2, h: topH }
+        );
+      } else {
+        solids.push({ x: 0, y: 0, w: WIDTH, h: topH });
+      }
+
+      if (exits.down) {
+        solids.push(
+          { x: 0, y: botY, w: (WIDTH - gap) / 2, h: HEIGHT - botY },
+          {
+            x: (WIDTH + gap) / 2,
+            y: botY,
+            w: (WIDTH - gap) / 2,
+            h: HEIGHT - botY,
+          }
+        );
+      } else {
+        solids.push({ x: 0, y: botY, w: WIDTH, h: HEIGHT - botY });
+      }
+
+      if (!exits.left) {
+        solids.push({ x: 0, y: topH, w: sideW, h: botY - topH });
+      }
+      if (!exits.right) {
+        solids.push({
+          x: WIDTH - sideW,
+          y: topH,
+          w: sideW,
+          h: botY - topH,
+        });
+      }
+
       props.push(
         { type: "panel", x: 210, y: 150, w: 54, h: 80 },
         { type: "panel", x: 696, y: 150, w: 54, h: 80 },
         { type: "stripe", x: 0, y: 250, w: WIDTH, h: 8 },
         { type: "stripe", x: 476, y: 0, w: 8, h: HEIGHT }
       );
-      if (exits.left) props.push({ type: "door-side", x: 0, y: 200, w: 28, h: 140 });
-      if (exits.right) props.push({ type: "door-side", x: 932, y: 200, w: 28, h: 140 });
-      if (exits.up) props.push({ type: "door-top", x: 390, y: 0, w: 180, h: 28 });
-      if (exits.down) props.push({ type: "door-top", x: 390, y: 512, w: 180, h: 28 });
     }
 
-    return { solids, props };
+    for (const dir of Object.keys(DIRS)) {
+      if (!exits[dir]) continue;
+      props.push(doorProp(dir, Boolean(lockedDirs[dir])));
+    }
+
+    return { solids, props, axes };
+  }
+
+  function buildSpecialLayout(kind, exits) {
+    const solids = [];
+    const props = [];
+
+    // Outer bulkheads with a single doorway opening
+    const doorGap = 180;
+    solids.push(
+      { x: 0, y: 0, w: WIDTH, h: 70 },
+      { x: 0, y: HEIGHT - 70, w: WIDTH, h: 70 },
+      { x: 0, y: 70, w: 70, h: HEIGHT - 140 },
+      { x: WIDTH - 70, y: 70, w: 70, h: HEIGHT - 140 }
+    );
+
+    // Carve doorway by not covering the exit edge with an extra blocker;
+    // instead mark a door prop and keep edge open via exits.
+    if (exits.up) {
+      // open top center: replace top solid with two pieces
+      solids.length = 0;
+      solids.push(
+        { x: 0, y: 0, w: (WIDTH - doorGap) / 2, h: 70 },
+        { x: (WIDTH + doorGap) / 2, y: 0, w: (WIDTH - doorGap) / 2, h: 70 },
+        { x: 0, y: HEIGHT - 70, w: WIDTH, h: 70 },
+        { x: 0, y: 70, w: 70, h: HEIGHT - 140 },
+        { x: WIDTH - 70, y: 70, w: 70, h: HEIGHT - 140 }
+      );
+      props.push(doorProp("up", false));
+    } else if (exits.down) {
+      solids.length = 0;
+      solids.push(
+        { x: 0, y: 0, w: WIDTH, h: 70 },
+        { x: 0, y: HEIGHT - 70, w: (WIDTH - doorGap) / 2, h: 70 },
+        {
+          x: (WIDTH + doorGap) / 2,
+          y: HEIGHT - 70,
+          w: (WIDTH - doorGap) / 2,
+          h: 70,
+        },
+        { x: 0, y: 70, w: 70, h: HEIGHT - 140 },
+        { x: WIDTH - 70, y: 70, w: 70, h: HEIGHT - 140 }
+      );
+      props.push(doorProp("down", false));
+    } else if (exits.left) {
+      solids.length = 0;
+      solids.push(
+        { x: 0, y: 0, w: WIDTH, h: 70 },
+        { x: 0, y: HEIGHT - 70, w: WIDTH, h: 70 },
+        { x: 0, y: 70, w: 70, h: (HEIGHT - 140 - doorGap) / 2 },
+        {
+          x: 0,
+          y: 70 + (HEIGHT - 140 - doorGap) / 2 + doorGap,
+          w: 70,
+          h: (HEIGHT - 140 - doorGap) / 2,
+        },
+        { x: WIDTH - 70, y: 70, w: 70, h: HEIGHT - 140 }
+      );
+      props.push(doorProp("left", false));
+    } else if (exits.right) {
+      solids.length = 0;
+      solids.push(
+        { x: 0, y: 0, w: WIDTH, h: 70 },
+        { x: 0, y: HEIGHT - 70, w: WIDTH, h: 70 },
+        { x: 0, y: 70, w: 70, h: HEIGHT - 140 },
+        { x: WIDTH - 70, y: 70, w: 70, h: (HEIGHT - 140 - doorGap) / 2 },
+        {
+          x: WIDTH - 70,
+          y: 70 + (HEIGHT - 140 - doorGap) / 2 + doorGap,
+          w: 70,
+          h: (HEIGHT - 140 - doorGap) / 2,
+        }
+      );
+      props.push(doorProp("right", false));
+    }
+
+    props.push(
+      { type: "light", x: 180, y: 86, w: 28, h: 12 },
+      { type: "light", x: 460, y: 86, w: 28, h: 12 },
+      { type: "light", x: 740, y: 86, w: 28, h: 12 }
+    );
+
+    if (kind === "mess-hall") {
+      // Cafeteria tables + food dispenser wall (clear center aisle)
+      props.push(
+        { type: "label", x: 390, y: 100, text: "MESS HALL" },
+        { type: "counter", x: 120, y: 120, w: 280, h: 44 },
+        { type: "counter", x: 560, y: 120, w: 280, h: 44 },
+        { type: "table", x: 140, y: 230, w: 150, h: 84 },
+        { type: "table", x: 140, y: 340, w: 150, h: 84 },
+        { type: "table", x: 670, y: 230, w: 150, h: 84 },
+        { type: "table", x: 670, y: 340, w: 150, h: 84 },
+        { type: "bench", x: 140, y: 430, w: 150, h: 24 },
+        { type: "bench", x: 670, y: 430, w: 150, h: 24 },
+        { type: "dispenser", x: 150, y: 132, w: 70, h: 24 },
+        { type: "dispenser", x: 250, y: 132, w: 70, h: 24 },
+        { type: "dispenser", x: 640, y: 132, w: 70, h: 24 },
+        { type: "dispenser", x: 740, y: 132, w: 70, h: 24 }
+      );
+      solids.push(
+        { x: 120, y: 120, w: 280, h: 44 },
+        { x: 560, y: 120, w: 280, h: 44 },
+        { x: 140, y: 230, w: 150, h: 84 },
+        { x: 140, y: 340, w: 150, h: 84 },
+        { x: 670, y: 230, w: 150, h: 84 },
+        { x: 670, y: 340, w: 150, h: 84 }
+      );
+    } else if (kind === "lodging") {
+      // Bunk rooms on the sides with a clear center corridor to the door
+      props.push(
+        { type: "label", x: 400, y: 100, text: "LODGING" },
+        { type: "bunk", x: 100, y: 140, w: 200, h: 120 },
+        { type: "bunk", x: 100, y: 300, w: 200, h: 120 },
+        { type: "bunk", x: 660, y: 140, w: 200, h: 120 },
+        { type: "bunk", x: 660, y: 300, w: 200, h: 120 },
+        { type: "locker", x: 320, y: 160, w: 48, h: 100 },
+        { type: "locker", x: 320, y: 300, w: 48, h: 100 },
+        { type: "locker", x: 592, y: 160, w: 48, h: 100 },
+        { type: "locker", x: 592, y: 300, w: 48, h: 100 }
+      );
+      solids.push(
+        { x: 100, y: 140, w: 200, h: 120 },
+        { x: 100, y: 300, w: 200, h: 120 },
+        { x: 660, y: 140, w: 200, h: 120 },
+        { x: 660, y: 300, w: 200, h: 120 },
+        { x: 320, y: 160, w: 48, h: 100 },
+        { x: 320, y: 300, w: 48, h: 100 },
+        { x: 592, y: 160, w: 48, h: 100 },
+        { x: 592, y: 300, w: 48, h: 100 }
+      );
+    } else if (kind === "supply-room") {
+      // Shelves/crates on the sides with a clear center aisle
+      props.push(
+        { type: "label", x: 380, y: 100, text: "SUPPLY ROOM" },
+        { type: "shelf", x: 100, y: 130, w: 70, h: 300 },
+        { type: "shelf", x: 190, y: 130, w: 70, h: 300 },
+        { type: "shelf", x: 700, y: 130, w: 70, h: 300 },
+        { type: "shelf", x: 790, y: 130, w: 70, h: 300 },
+        { type: "crate", x: 300, y: 180, w: 90, h: 70 },
+        { type: "crate", x: 570, y: 180, w: 90, h: 70 },
+        { type: "crate", x: 300, y: 320, w: 90, h: 70 },
+        { type: "crate", x: 570, y: 320, w: 90, h: 70 }
+      );
+      solids.push(
+        { x: 100, y: 130, w: 70, h: 300 },
+        { x: 190, y: 130, w: 70, h: 300 },
+        { x: 700, y: 130, w: 70, h: 300 },
+        { x: 790, y: 130, w: 70, h: 300 },
+        { x: 300, y: 180, w: 90, h: 70 },
+        { x: 570, y: 180, w: 90, h: 70 },
+        { x: 300, y: 320, w: 90, h: 70 },
+        { x: 570, y: 320, w: 90, h: 70 }
+      );
+    } else {
+      // Locked special rooms still get a simple stub layout (unreachable for now)
+      props.push(
+        { type: "label", x: 360, y: 240, text: kind.replace("-", " ").toUpperCase() },
+        { type: "panel", x: 200, y: 160, w: 80, h: 100 },
+        { type: "panel", x: 680, y: 160, w: 80, h: 100 }
+      );
+    }
+
+    return { solids, props, axes: "both" };
   }
 
   function buildRooms() {
@@ -141,36 +412,45 @@ window.SpaceQuestMap = (() => {
     for (let row = 0; row < GRID.length; row += 1) {
       for (let col = 0; col < GRID[row].length; col += 1) {
         const label = GRID[row][col];
-        if (!WALKABLE.has(label)) continue;
+        if (!CONNECTED.has(label)) continue;
 
         const id = cellId(row, col);
         const exits = { up: null, down: null, left: null, right: null };
+        const lockedDirs = { up: false, down: false, left: false, right: false };
 
         for (const [dir, meta] of Object.entries(DIRS)) {
           const nr = row + meta.dr;
           const nc = col + meta.dc;
-          const neighbor = GRID[nr]?.[nc] || "";
-          if (WALKABLE.has(neighbor)) {
-            exits[dir] = cellId(nr, nc);
-          }
+          const neighbor = labelAt(nr, nc);
+          if (!CONNECTED.has(neighbor)) continue;
+          exits[dir] = cellId(nr, nc);
+          if (SPECIAL[neighbor]?.locked) lockedDirs[dir] = true;
         }
 
-        const axes = axesFromExits(exits);
-        const layout = buildLayout(exits, axes);
         const isStart = label === "Starting Scene";
+        const isHall = label === "Hallway" || isStart;
+        const special = SPECIAL[label];
+
+        const layout = isHall
+          ? buildHallwayLayout(exits, lockedDirs)
+          : buildSpecialLayout(special.id, exits);
 
         rooms[id] = {
           id,
-          name: isStart ? "Starting Scene" : "Hallway",
-          kind: isStart ? "start" : "hallway",
+          name: label,
+          kind: isStart ? "start" : isHall ? "hallway" : "special",
+          specialType: special?.id || null,
+          locked: Boolean(special?.locked),
+          keyId: special?.keyId || null,
           grid: { row, col },
-          spawn: { centered: true, y: 250 },
-          movement: { axes },
-          alarm: true,
+          spawn: { centered: true, y: isHall ? 250 : 260 },
+          movement: { axes: layout.axes },
+          alarm: isHall,
           solids: layout.solids,
           props: layout.props,
           enemies: [],
           exits,
+          lockedDirs,
           palette: { ...PALETTE },
         };
 
@@ -187,6 +467,7 @@ window.SpaceQuestMap = (() => {
     WIDTH,
     HEIGHT,
     GRID,
+    SPECIAL,
     rooms: built.rooms,
     startRoomId: built.startRoomId,
     cellId,

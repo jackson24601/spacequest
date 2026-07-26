@@ -1,6 +1,7 @@
 window.SpaceQuestApp = (() => {
   let screens;
   let adventureCanvas;
+  let messageTimer = 0;
 
   function show(screenName) {
     Object.entries(screens).forEach(([name, el]) => {
@@ -10,23 +11,47 @@ window.SpaceQuestApp = (() => {
     });
   }
 
+  function showGameMessage(text) {
+    const el = document.getElementById("game-message");
+    if (!el) return;
+    el.hidden = false;
+    el.textContent = text;
+    el.classList.remove("is-visible");
+    // restart animation
+    void el.offsetWidth;
+    el.classList.add("is-visible");
+    window.clearTimeout(messageTimer);
+    messageTimer = window.setTimeout(() => {
+      el.classList.remove("is-visible");
+      el.hidden = true;
+    }, 2400);
+  }
+
   function updateAdventureHud(room) {
     const title = document.querySelector("[data-hud-room]");
     const tip = document.querySelector("[data-hud-tip]");
     if (title) {
-      title.textContent =
-        room.kind === "start"
-          ? "Starting Scene — alarms active"
-          : `${room.name} — alarms active`;
+      if (room.kind === "start") {
+        title.textContent = "Starting Scene — alarms active";
+      } else if (room.kind === "special") {
+        title.textContent = room.name;
+      } else {
+        title.textContent = `${room.name} — alarms active`;
+      }
     }
     if (tip) {
-      const axes = room.movement?.axes;
-      if (axes === "horizontal") {
-        tip.innerHTML = "<strong>Tip:</strong> Use ← → to walk the corridor";
-      } else if (axes === "vertical") {
-        tip.innerHTML = "<strong>Tip:</strong> Use ↑ ↓ to walk the corridor";
+      if (room.kind === "special") {
+        tip.innerHTML = "<strong>Tip:</strong> Explore, then leave through the door";
       } else {
-        tip.innerHTML = "<strong>Tip:</strong> Use arrow keys to explore junctions";
+        const axes = room.movement?.axes;
+        if (axes === "horizontal") {
+          tip.innerHTML = "<strong>Tip:</strong> Use ← → to walk the corridor";
+        } else if (axes === "vertical") {
+          tip.innerHTML = "<strong>Tip:</strong> Use ↑ ↓ to walk the corridor";
+        } else {
+          tip.innerHTML =
+            "<strong>Tip:</strong> Arrow keys move; doorways lead to rooms";
+        }
       }
     }
   }
@@ -39,10 +64,14 @@ window.SpaceQuestApp = (() => {
       resumePosition: options.resumePosition,
       defeatedEnemyId: options.defeatedEnemyId,
       onRoomChange: updateAdventureHud,
+      onLockedDoor: (info) => {
+        showGameMessage(
+          info?.message || "This door is locked and you do not have the key."
+        );
+      },
       onCombat: (encounter) => {
         window.SpaceQuestCombat.open(encounter, {
           onFlee: () => {
-            // Nudge the player back so they don't instantly re-trigger combat
             const nudged = {
               x: Math.max(60, encounter.player.x - 64),
               y: encounter.player.y,
@@ -94,6 +123,7 @@ window.SpaceQuestApp = (() => {
     adventureCanvas = document.getElementById("adventure-canvas");
 
     window.SpaceQuestCombat.mount(screens.combat);
+    window.SpaceQuestInventory.reset();
 
     document
       .getElementById("begin-quest")
@@ -120,7 +150,7 @@ window.SpaceQuestApp = (() => {
     show("landing");
   }
 
-  return { init, beginQuest };
+  return { init, beginQuest, showGameMessage };
 })();
 
 document.addEventListener("DOMContentLoaded", () => {
