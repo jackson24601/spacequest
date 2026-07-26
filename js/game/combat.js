@@ -4,7 +4,8 @@
  * Each has 50% hit chance and deals 1 damage.
  */
 window.SpaceQuestCombat = (() => {
-  const HIT_CHANCE = 0.5;
+  const PLAYER_HIT_CHANCE = 0.5;
+  const ENEMY_DEFAULT_HIT_CHANCE = 0.25;
   const UNARMED_DAMAGE = 1;
 
   let root;
@@ -136,7 +137,7 @@ window.SpaceQuestCombat = (() => {
     return target;
   }
 
-  function rollHit(chance = HIT_CHANCE) {
+  function rollHit(chance = PLAYER_HIT_CHANCE) {
     return Math.random() < chance;
   }
 
@@ -153,7 +154,7 @@ window.SpaceQuestCombat = (() => {
     turn = "enemy";
 
     const label = actionName === "kick" ? "Kick" : "Punch";
-    const hit = rollHit(HIT_CHANCE);
+    const hit = rollHit(PLAYER_HIT_CHANCE);
 
     if (hit) {
       target.hp = Math.max(0, target.hp - UNARMED_DAMAGE);
@@ -177,7 +178,7 @@ window.SpaceQuestCombat = (() => {
 
   async function enemyPhase() {
     for (const enemy of livingEnemies()) {
-      const chance = enemy.hitChance ?? HIT_CHANCE;
+      const chance = enemy.hitChance ?? ENEMY_DEFAULT_HIT_CHANCE;
       const damage = enemy.attackDamage ?? 1;
       const hit = rollHit(chance);
 
@@ -260,8 +261,8 @@ window.SpaceQuestCombat = (() => {
       hp: enemy.hp ?? enemy.maxHp ?? 5,
       maxHp: enemy.maxHp ?? enemy.hp ?? 5,
       attackDamage: enemy.attackDamage ?? 1,
-      hitChance: enemy.hitChance ?? HIT_CHANCE,
-      sprite: enemy.sprite || "assets/sprites/enemy.png",
+      hitChance: enemy.hitChance ?? ENEMY_DEFAULT_HIT_CHANCE,
+      sprite: enemy.sprite || "assets/sprites/alien-l1.png",
     }));
 
     selectedEnemyId = livingEnemies()[0]?.id || null;
