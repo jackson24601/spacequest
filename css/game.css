@@ -385,10 +385,11 @@
   inset: 0;
   z-index: 5;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 1rem;
-  background: rgba(4, 8, 18, 0.55);
+  padding-top: clamp(0.75rem, 4%, 1.35rem);
+  background: rgba(4, 8, 18, 0.28);
 }
 
 .game-dialog[hidden] {
