@@ -74,6 +74,9 @@ window.SpaceQuestApp = (() => {
     const inventory = window.SpaceQuestInventory;
     adventure.setPaused(true);
 
+    // Brief beat so the collapsed alien is visible before the prompt
+    await new Promise((resolve) => window.setTimeout(resolve, 450));
+
     const choice = await window.SpaceQuestDialog.confirm("Search Alien?");
     if (choice === "yes") {
       adventure.markCorpseSearched();
