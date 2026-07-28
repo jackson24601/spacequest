@@ -393,8 +393,38 @@ window.SpaceQuestMap = (() => {
         { x: 300, y: 320, w: 90, h: 70 },
         { x: 570, y: 320, w: 90, h: 70 }
       );
+    } else if (kind === "engine-room") {
+      // Drive core on the stern (right) with a clear entry lane from the left door
+      props.push(
+        { type: "label", x: 370, y: 100, text: "ENGINE ROOM" },
+        { type: "tank", x: 110, y: 110, w: 100, h: 150 },
+        { type: "tank", x: 110, y: 320, w: 100, h: 130 },
+        { type: "console", x: 260, y: 120, w: 130, h: 70 },
+        { type: "console", x: 430, y: 120, w: 130, h: 70 },
+        { type: "console", x: 260, y: 390, w: 130, h: 70 },
+        { type: "console", x: 430, y: 390, w: 130, h: 70 },
+        { type: "pipe", x: 210, y: 170, w: 400, h: 16 },
+        { type: "pipe", x: 210, y: 360, w: 400, h: 16 },
+        { type: "pipe-vert", x: 400, y: 186, w: 16, h: 174 },
+        { type: "reactor", x: 630, y: 140, w: 210, h: 270 },
+        { type: "thruster", x: 690, y: 420, w: 110, h: 42 },
+        { type: "hazard", x: 250, y: 300, w: 340, h: 14 },
+        { type: "panel", x: 560, y: 150, w: 60, h: 90 },
+        { type: "panel", x: 560, y: 320, w: 60, h: 90 }
+      );
+      solids.push(
+        { x: 110, y: 110, w: 100, h: 150 },
+        { x: 110, y: 320, w: 100, h: 130 },
+        { x: 260, y: 120, w: 130, h: 70 },
+        { x: 430, y: 120, w: 130, h: 70 },
+        { x: 260, y: 390, w: 130, h: 70 },
+        { x: 430, y: 390, w: 130, h: 70 },
+        { x: 630, y: 140, w: 210, h: 270 },
+        { x: 560, y: 150, w: 60, h: 90 },
+        { x: 560, y: 320, w: 60, h: 90 }
+      );
     } else {
-      // Locked special rooms still get a simple stub layout (unreachable for now)
+      // Remaining locked special rooms still get a simple stub layout
       props.push(
         { type: "label", x: 360, y: 240, text: kind.replace("-", " ").toUpperCase() },
         { type: "panel", x: 200, y: 160, w: 80, h: 100 },

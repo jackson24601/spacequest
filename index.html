@@ -93,6 +93,22 @@
           aria-live="polite"
           hidden
         ></div>
+        <div
+          id="game-dialog"
+          class="game-dialog"
+          aria-hidden="true"
+          hidden
+        >
+          <div
+            class="game-dialog__panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="game-dialog-text"
+          >
+            <p id="game-dialog-text" class="game-dialog__text" data-dialog-text></p>
+            <div class="game-dialog__actions" data-dialog-actions></div>
+          </div>
+        </div>
       </div>
       <div class="adventure-hud">
         <span data-hud-room>Starting Scene — alarms active</span>
@@ -153,6 +169,7 @@
     <script src="js/game/input.js"></script>
     <script src="js/game/adventure.js"></script>
     <script src="js/game/combat.js"></script>
+    <script src="js/game/dialog.js"></script>
     <script src="js/game/app.js"></script>
   </body>
 </html>

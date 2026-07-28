@@ -1,6 +1,6 @@
 /**
  * Ship room catalog — generated from the spaceship map grid.
- * Hallway + Starting Scene are playable now; special rooms come later.
+ * Open special rooms + Engine Room (key card) are playable; other locked rooms stay stubs.
  */
 window.SpaceQuestRooms = {
   WIDTH: window.SpaceQuestMap.WIDTH,

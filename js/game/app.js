@@ -31,6 +31,9 @@ window.SpaceQuestApp = (() => {
     const tip = document.querySelector("[data-hud-tip]");
     const hp = window.SpaceQuestPlayerState.getHp();
     const maxHp = window.SpaceQuestPlayerState.getMaxHp();
+    const hasEngineKey = window.SpaceQuestInventory.hasKey(
+      window.SpaceQuestInventory.KEY_IDS.ENGINE_ROOM
+    );
 
     if (title) {
       if (room.kind === "start") {
@@ -40,10 +43,16 @@ window.SpaceQuestApp = (() => {
       } else {
         title.textContent = `${room.name} — HP ${hp}/${maxHp}`;
       }
+      if (hasEngineKey) {
+        title.textContent += " · Key Card";
+      }
     }
     if (tip) {
       if (room.kind === "special") {
-        tip.innerHTML = "<strong>Tip:</strong> Explore, then leave through the door";
+        tip.innerHTML =
+          room.specialType === "engine-room"
+            ? "<strong>Tip:</strong> Drive core online — exit left to the hallway"
+            : "<strong>Tip:</strong> Explore, then leave through the door";
       } else {
         const axes = room.movement?.axes;
         if (axes === "horizontal") {
@@ -60,13 +69,37 @@ window.SpaceQuestApp = (() => {
     }
   }
 
-  function startAdventure(options = {}) {
+  async function offerAlienSearch() {
+    const adventure = window.SpaceQuestAdventure;
+    const inventory = window.SpaceQuestInventory;
+    adventure.setPaused(true);
+
+    const choice = await window.SpaceQuestDialog.confirm("Search Alien?");
+    if (choice === "yes") {
+      adventure.markCorpseSearched();
+      if (inventory.rollKeyCardFind()) {
+        inventory.addKey(inventory.KEY_IDS.ENGINE_ROOM);
+        await window.SpaceQuestDialog.notice(
+          "You have found a key card to the Engine Room!"
+        );
+        const room = adventure.getRoom();
+        if (room) updateAdventureHud(room);
+      } else {
+        showGameMessage("You find nothing useful.");
+      }
+    }
+
+    adventure.setPaused(false);
+  }
+
+  async function startAdventure(options = {}) {
     show("adventure");
-    window.SpaceQuestAdventure.start({
+    await window.SpaceQuestAdventure.start({
       canvas: adventureCanvas,
       roomId: options.roomId,
       resumePosition: options.resumePosition,
       defeatedEnemyId: options.defeatedEnemyId,
+      placeCorpse: options.placeCorpse,
       onRoomChange: updateAdventureHud,
       onLockedDoor: (info) => {
         showGameMessage(
@@ -81,6 +114,8 @@ window.SpaceQuestApp = (() => {
               roomId: encounter.roomId,
               resumePosition: encounter.player,
               defeatedEnemyId: encounter.enemy.id,
+              placeCorpse: encounter.enemy,
+              afterCombatLoot: true,
             });
           },
           onLose: () => {
@@ -91,6 +126,11 @@ window.SpaceQuestApp = (() => {
             showGameMessage("You wake back in the Starting Scene.");
           },
         });
+      },
+      onSceneReady: () => {
+        if (options.afterCombatLoot) {
+          offerAlienSearch();
+        }
       },
     });
   }
@@ -124,6 +164,7 @@ window.SpaceQuestApp = (() => {
     adventureCanvas = document.getElementById("adventure-canvas");
 
     window.SpaceQuestCombat.mount(screens.combat);
+    window.SpaceQuestDialog.mount(document.getElementById("game-dialog"));
     window.SpaceQuestInventory.reset();
     window.SpaceQuestPlayerState.reset();
 

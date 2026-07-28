@@ -27,6 +27,8 @@ window.SpaceQuestAdventure = (() => {
   let lockedDoorCooldown = 0;
   let alienSpawnTimer = null;
   let suppressAlienSpawn = false;
+  let corpses = [];
+  let interactionPaused = false;
 
   function aabb(a, b) {
     return (
@@ -250,6 +252,7 @@ window.SpaceQuestAdventure = (() => {
     player = createPlayer(pos.x, pos.y);
 
     enemies = [];
+    corpses = [];
     clearAlienSpawnTimer();
 
     window.SpaceQuestInput.setAxes(room.movement?.axes || "both");
@@ -315,6 +318,66 @@ window.SpaceQuestAdventure = (() => {
     if (!target) return false;
     if (!target.locked) return true;
     return window.SpaceQuestInventory.hasKey(target.keyId);
+  }
+
+  function doorDirFromProp(prop) {
+    if (prop.type === "door-side" || prop.type === "door-locked-side") {
+      return prop.x < 100 ? "left" : "right";
+    }
+    if (prop.type === "door-top" || prop.type === "door-locked-top") {
+      return prop.y < 40 ? "up" : "down";
+    }
+    return null;
+  }
+
+  function isDoorVisuallyLocked(prop) {
+    const dir = doorDirFromProp(prop);
+    if (!dir) return false;
+    const targetId = room?.exits?.[dir];
+    if (!targetId) {
+      return (
+        prop.type === "door-locked-side" || prop.type === "door-locked-top"
+      );
+    }
+    return !canEnter(targetId);
+  }
+
+  function setPaused(paused) {
+    interactionPaused = Boolean(paused);
+    if (interactionPaused) {
+      window.SpaceQuestInput.clear();
+    }
+  }
+
+  function placeCorpseNearPlayer(enemyLike = {}) {
+    const catalog = window.SpaceQuestRooms;
+    const template = window.SpaceQuestEnemies?.LEVEL_ONE_ALIEN || {};
+    const drawW = enemyLike.w || template.w || 56;
+    const drawH = enemyLike.h || template.h || 84;
+    // Laid on its side: bounding box swaps axes slightly
+    const boxW = drawH;
+    const boxH = Math.round(drawW * 0.7);
+    const facing = player?.facing >= 0 ? 1 : -1;
+    let x =
+      facing >= 0
+        ? player.x + player.w + 10
+        : player.x - boxW - 10;
+    let y = player.y + player.h - boxH - 6;
+    x = Math.max(16, Math.min(catalog.WIDTH - boxW - 16, x));
+    y = Math.max(40, Math.min(catalog.HEIGHT - boxH - 24, y));
+
+    corpses = [
+      {
+        x,
+        y,
+        boxW,
+        boxH,
+        drawW,
+        drawH,
+        sprite: enemyLike.sprite || template.sprite || "assets/sprites/alien-l1.png",
+        searched: false,
+      },
+    ];
   }
 
   function bounceFromDir(dir) {
@@ -544,7 +607,7 @@ window.SpaceQuestAdventure = (() => {
         );
         ctx.fill();
       } else if (prop.type === "door-side" || prop.type === "door-locked-side") {
-        const locked = prop.type === "door-locked-side";
+        const locked = isDoorVisuallyLocked(prop);
         ctx.fillStyle = "#0d1520";
         ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
         ctx.fillStyle = locked
@@ -563,7 +626,7 @@ window.SpaceQuestAdventure = (() => {
           ctx.fillRect(prop.x + 8, prop.y + prop.h / 2 - 8, 12, 16);
         }
       } else if (prop.type === "door-top" || prop.type === "door-locked-top") {
-        const locked = prop.type === "door-locked-top";
+        const locked = isDoorVisuallyLocked(prop);
         ctx.fillStyle = "#0d1520";
         ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
         ctx.fillStyle = locked
@@ -641,6 +704,126 @@ window.SpaceQuestAdventure = (() => {
         ctx.moveTo(prop.x + prop.w, prop.y);
         ctx.lineTo(prop.x, prop.y + prop.h);
         ctx.stroke();
+      } else if (prop.type === "tank") {
+        ctx.fillStyle = "#2a3a52";
+        ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
+        ctx.fillStyle = "#1a2538";
+        ctx.fillRect(prop.x + 8, prop.y + 12, prop.w - 16, prop.h - 24);
+        const glow = ctx.createLinearGradient(
+          prop.x,
+          prop.y,
+          prop.x,
+          prop.y + prop.h
+        );
+        glow.addColorStop(0, "rgba(255, 140, 60, 0.15)");
+        glow.addColorStop(0.55, "rgba(255, 90, 40, 0.45)");
+        glow.addColorStop(1, "rgba(255, 60, 30, 0.2)");
+        ctx.fillStyle = glow;
+        ctx.fillRect(prop.x + 14, prop.y + 20, prop.w - 28, prop.h - 40);
+        ctx.fillStyle = palette.metal;
+        ctx.fillRect(prop.x + 6, prop.y + 6, prop.w - 12, 8);
+        ctx.fillRect(prop.x + 6, prop.y + prop.h - 14, prop.w - 12, 8);
+        ctx.fillStyle = "#e0b245";
+        ctx.fillRect(prop.x + prop.w / 2 - 8, prop.y + 22, 16, 10);
+      } else if (prop.type === "reactor") {
+        ctx.fillStyle = "#182338";
+        ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
+        ctx.strokeStyle = "rgba(148, 210, 230, 0.35)";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(prop.x + 4, prop.y + 4, prop.w - 8, prop.h - 8);
+        const core = ctx.createRadialGradient(
+          prop.x + prop.w / 2,
+          prop.y + prop.h / 2,
+          12,
+          prop.x + prop.w / 2,
+          prop.y + prop.h / 2,
+          prop.w * 0.42
+        );
+        core.addColorStop(0, "rgba(255, 220, 120, 0.95)");
+        core.addColorStop(0.45, "rgba(255, 120, 40, 0.75)");
+        core.addColorStop(1, "rgba(80, 30, 20, 0.2)");
+        ctx.fillStyle = core;
+        ctx.beginPath();
+        ctx.ellipse(
+          prop.x + prop.w / 2,
+          prop.y + prop.h / 2,
+          prop.w * 0.28,
+          prop.h * 0.34,
+          0,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+        ctx.fillStyle = "rgba(62, 199, 192, 0.55)";
+        for (let i = 0; i < 4; i += 1) {
+          const yy = prop.y + 28 + i * 56;
+          ctx.fillRect(prop.x + 16, yy, prop.w - 32, 8);
+        }
+        ctx.fillStyle = "#ffd56a";
+        ctx.font = "700 14px Outfit, sans-serif";
+        ctx.fillText("DRIVE CORE", prop.x + 48, prop.y + 28);
+      } else if (prop.type === "console") {
+        ctx.fillStyle = "#24344c";
+        ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
+        ctx.fillStyle = "#0d1520";
+        ctx.fillRect(prop.x + 10, prop.y + 10, prop.w - 20, prop.h - 28);
+        ctx.fillStyle = `rgba(62, 199, 192, ${0.45 + pulse * 0.35})`;
+        ctx.fillRect(prop.x + 16, prop.y + 16, prop.w - 32, 10);
+        ctx.fillStyle = palette.accentWarm;
+        ctx.fillRect(prop.x + 16, prop.y + 32, 28, 8);
+        ctx.fillStyle = "#ff6b4a";
+        ctx.fillRect(prop.x + 52, prop.y + 32, 18, 8);
+        ctx.fillStyle = palette.metal;
+        ctx.fillRect(prop.x + 8, prop.y + prop.h - 14, prop.w - 16, 8);
+      } else if (prop.type === "pipe" || prop.type === "pipe-vert") {
+        ctx.fillStyle = "#6d7f96";
+        ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
+        ctx.fillStyle = "rgba(255,255,255,0.18)";
+        if (prop.type === "pipe") {
+          ctx.fillRect(prop.x, prop.y + 3, prop.w, 4);
+        } else {
+          ctx.fillRect(prop.x + 3, prop.y, 4, prop.h);
+        }
+        ctx.fillStyle = "#e0b245";
+        if (prop.type === "pipe") {
+          for (let x = prop.x + 20; x < prop.x + prop.w; x += 48) {
+            ctx.fillRect(x, prop.y - 2, 10, prop.h + 4);
+          }
+        } else {
+          for (let y = prop.y + 20; y < prop.y + prop.h; y += 48) {
+            ctx.fillRect(prop.x - 2, y, prop.w + 4, 10);
+          }
+        }
+      } else if (prop.type === "thruster") {
+        ctx.fillStyle = "#1c283c";
+        ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
+        const plume = ctx.createLinearGradient(
+          prop.x,
+          prop.y,
+          prop.x + prop.w,
+          prop.y
+        );
+        plume.addColorStop(0, "rgba(255, 200, 80, 0.15)");
+        plume.addColorStop(0.5, "rgba(255, 110, 40, 0.7)");
+        plume.addColorStop(1, "rgba(80, 140, 255, 0.35)");
+        ctx.fillStyle = plume;
+        ctx.fillRect(prop.x + 8, prop.y + 8, prop.w - 16, prop.h - 16);
+        ctx.fillStyle = palette.metal;
+        ctx.fillRect(prop.x + 4, prop.y + 4, 10, prop.h - 8);
+        ctx.fillRect(prop.x + prop.w - 14, prop.y + 4, 10, prop.h - 8);
+      } else if (prop.type === "hazard") {
+        ctx.fillStyle = "#1a1a1a";
+        ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
+        ctx.fillStyle = "#e0b245";
+        for (let x = prop.x; x < prop.x + prop.w; x += 28) {
+          ctx.beginPath();
+          ctx.moveTo(x, prop.y + prop.h);
+          ctx.lineTo(x + 14, prop.y);
+          ctx.lineTo(x + 28, prop.y);
+          ctx.lineTo(x + 14, prop.y + prop.h);
+          ctx.closePath();
+          ctx.fill();
+        }
       }
     }
   }
@@ -732,7 +915,40 @@ window.SpaceQuestAdventure = (() => {
     return "Move with Arrow Keys";
   }
 
+  function drawCorpses() {
+    for (const corpse of corpses) {
+      ctx.fillStyle = "rgba(0,0,0,0.28)";
+      ctx.beginPath();
+      ctx.ellipse(
+        corpse.x + corpse.boxW / 2,
+        corpse.y + corpse.boxH + 2,
+        corpse.boxW * 0.42,
+        5,
+        0,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+
+      ctx.save();
+      ctx.translate(corpse.x + corpse.boxW / 2, corpse.y + corpse.boxH / 2);
+      ctx.rotate(Math.PI / 2);
+      ctx.globalAlpha = 0.92;
+      ctx.filter = "grayscale(0.35) brightness(0.85)";
+      ctx.drawImage(
+        enemyImage,
+        -corpse.drawW / 2,
+        -corpse.drawH / 2,
+        corpse.drawW,
+        corpse.drawH
+      );
+      ctx.restore();
+    }
+  }
+
   function drawActors() {
+    drawCorpses();
+
     for (const enemy of enemies) {
       if (enemy.defeated) continue;
       enemy.bob += 0.04;
@@ -780,31 +996,36 @@ window.SpaceQuestAdventure = (() => {
     if (lockedDoorCooldown > 0) lockedDoorCooldown -= dt;
     if (room.alarm) alarmPhase += dt * 3.2;
 
-    const dir = window.SpaceQuestInput.vector();
-    const moved = tryMove(dir.x * PLAYER_SPEED * dt, dir.y * PLAYER_SPEED * dt);
-    player.moving = moved && (dir.x !== 0 || dir.y !== 0);
-    updatePlayerAnim(dt, dir.x);
-    updateEnemies(dt);
+    if (!interactionPaused) {
+      const dir = window.SpaceQuestInput.vector();
+      const moved = tryMove(dir.x * PLAYER_SPEED * dt, dir.y * PLAYER_SPEED * dt);
+      player.moving = moved && (dir.x !== 0 || dir.y !== 0);
+      updatePlayerAnim(dt, dir.x);
+      updateEnemies(dt);
 
-    const transition = checkRoomTransition();
-    if (transition) {
-      // Keep held keys so walking continues across hallway transitions
-      loadRoom(transition.roomId, transition.entryDir);
-    }
-
-    const touched = checkEnemyContact();
-    if (touched) {
-      clearAlienSpawnTimer();
-      stop();
-      if (typeof onCombat === "function") {
-        onCombat({
-          enemy: touched,
-          enemies: [touched],
-          roomId: room.id,
-          player: { x: player.x, y: player.y },
-        });
+      const transition = checkRoomTransition();
+      if (transition) {
+        // Keep held keys so walking continues across hallway transitions
+        loadRoom(transition.roomId, transition.entryDir);
       }
-      return;
+
+      const touched = checkEnemyContact();
+      if (touched) {
+        clearAlienSpawnTimer();
+        stop();
+        if (typeof onCombat === "function") {
+          onCombat({
+            enemy: touched,
+            enemies: [touched],
+            roomId: room.id,
+            player: { x: player.x, y: player.y },
+          });
+        }
+        return;
+      }
+    } else {
+      player.moving = false;
+      updatePlayerAnim(dt, 0);
     }
 
     drawRoomBackdrop();
@@ -826,6 +1047,7 @@ window.SpaceQuestAdventure = (() => {
     canvas.height = catalog.HEIGHT;
 
     await prepareAssets();
+    interactionPaused = false;
     // After winning a fight, skip an immediate re-roll in the same room visit
     suppressAlienSpawn = Boolean(options.defeatedEnemyId);
     loadRoom(options.roomId || catalog.startRoomId, options.entryDir || null);
@@ -835,6 +1057,10 @@ window.SpaceQuestAdventure = (() => {
       player.y = options.resumePosition.y;
     }
 
+    if (options.placeCorpse) {
+      placeCorpseNearPlayer(options.placeCorpse);
+    }
+
     window.SpaceQuestInput.bind();
     window.SpaceQuestInput.clear();
     running = true;
@@ -842,10 +1068,19 @@ window.SpaceQuestAdventure = (() => {
     lastTime = performance.now();
     cancelAnimationFrame(rafId);
     rafId = requestAnimationFrame(frame);
+
+    if (typeof options.onSceneReady === "function") {
+      options.onSceneReady({
+        room,
+        player,
+        corpses,
+      });
+    }
   }
 
   function stop() {
     running = false;
+    interactionPaused = false;
     clearAlienSpawnTimer();
     cancelAnimationFrame(rafId);
     window.SpaceQuestInput.unbind();
@@ -855,5 +1090,11 @@ window.SpaceQuestAdventure = (() => {
     return room;
   }
 
-  return { start, stop, getRoom };
+  function markCorpseSearched() {
+    corpses.forEach((corpse) => {
+      corpse.searched = true;
+    });
+  }
+
+  return { start, stop, getRoom, setPaused, markCorpseSearched };
 })();
