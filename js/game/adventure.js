@@ -18,6 +18,7 @@ window.SpaceQuestAdventure = (() => {
   let enemies = [];
   let playerSheet;
   let enemyImage;
+  let enemyDeadImage;
   let onCombat;
   let onRoomChange;
   let onLockedDoor;
@@ -53,12 +54,20 @@ window.SpaceQuestAdventure = (() => {
   }
 
   async function prepareAssets() {
-    if (assetsReady) return;
-    [playerSheet, enemyImage] = await Promise.all([
-      loadImage("assets/sprites/player-walk.png"),
-      loadImage("assets/sprites/alien-l1.png"),
-    ]);
-    assetsReady = true;
+    if (!playerSheet) {
+      playerSheet = await loadImage("assets/sprites/player-walk.png");
+    }
+    if (!enemyImage) {
+      enemyImage = await loadImage("assets/sprites/alien-l1.png");
+    }
+    if (!enemyDeadImage) {
+      try {
+        enemyDeadImage = await loadImage("assets/sprites/alien-l1-dead.png");
+      } catch (err) {
+        enemyDeadImage = null;
+      }
+    }
+    assetsReady = Boolean(playerSheet && enemyImage);
   }
 
   function clearAlienSpawnTimer() {
@@ -352,29 +361,31 @@ window.SpaceQuestAdventure = (() => {
   function placeCorpseNearPlayer(enemyLike = {}) {
     const catalog = window.SpaceQuestRooms;
     const template = window.SpaceQuestEnemies?.LEVEL_ONE_ALIEN || {};
-    const drawW = enemyLike.w || template.w || 56;
-    const drawH = enemyLike.h || template.h || 84;
-    // Laid on its side: bounding box swaps axes slightly
-    const boxW = drawH;
-    const boxH = Math.round(drawW * 0.7);
+    // Dedicated horizontal dead sprite — scale up for hallway readability
+    const drawW = 120;
+    const drawH = 66;
     const facing = player?.facing >= 0 ? 1 : -1;
     let x =
       facing >= 0
-        ? player.x + player.w + 10
-        : player.x - boxW - 10;
-    let y = player.y + player.h - boxH - 6;
-    x = Math.max(16, Math.min(catalog.WIDTH - boxW - 16, x));
-    y = Math.max(40, Math.min(catalog.HEIGHT - boxH - 24, y));
+        ? player.x + player.w + 14
+        : player.x - drawW - 14;
+    let y = player.y + Math.round(player.h * 0.45);
+    x = Math.max(20, Math.min(catalog.WIDTH - drawW - 20, x));
+    y = Math.max(70, Math.min(catalog.HEIGHT - drawH - 28, y));
 
     corpses = [
       {
         x,
         y,
-        boxW,
-        boxH,
+        boxW: drawW,
+        boxH: drawH,
         drawW,
         drawH,
-        sprite: enemyLike.sprite || template.sprite || "assets/sprites/alien-l1.png",
+        sprite:
+          enemyLike.deadSprite ||
+          "assets/sprites/alien-l1-dead.png",
+        liveSprite:
+          enemyLike.sprite || template.sprite || "assets/sprites/alien-l1.png",
         searched: false,
       },
     ];
@@ -917,31 +928,26 @@ window.SpaceQuestAdventure = (() => {
 
   function drawCorpses() {
     for (const corpse of corpses) {
-      ctx.fillStyle = "rgba(0,0,0,0.28)";
+      // Floor shadow
+      ctx.fillStyle = "rgba(0,0,0,0.35)";
       ctx.beginPath();
       ctx.ellipse(
         corpse.x + corpse.boxW / 2,
-        corpse.y + corpse.boxH + 2,
+        corpse.y + corpse.boxH - 2,
         corpse.boxW * 0.42,
-        5,
+        8,
         0,
         0,
         Math.PI * 2
       );
       ctx.fill();
 
+      const img = enemyDeadImage || enemyImage;
+      if (!img) continue;
+
       ctx.save();
-      ctx.translate(corpse.x + corpse.boxW / 2, corpse.y + corpse.boxH / 2);
-      ctx.rotate(Math.PI / 2);
-      ctx.globalAlpha = 0.92;
-      ctx.filter = "grayscale(0.35) brightness(0.85)";
-      ctx.drawImage(
-        enemyImage,
-        -corpse.drawW / 2,
-        -corpse.drawH / 2,
-        corpse.drawW,
-        corpse.drawH
-      );
+      ctx.globalAlpha = 1;
+      ctx.drawImage(img, corpse.x, corpse.y, corpse.drawW, corpse.drawH);
       ctx.restore();
     }
   }
@@ -1096,5 +1102,9 @@ window.SpaceQuestAdventure = (() => {
     });
   }
 
-  return { start, stop, getRoom, setPaused, markCorpseSearched };
+  function getCorpses() {
+    return corpses.map((c) => ({ ...c }));
+  }
+
+  return { start, stop, getRoom, setPaused, markCorpseSearched, getCorpses };
 })();
