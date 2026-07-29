@@ -2,13 +2,28 @@ window.SpaceQuestApp = (() => {
   let screens;
   let adventureCanvas;
   let messageTimer = 0;
+  let inventoryBtn;
+  let inventoryPanel;
+  let inventoryBody;
+  let inventoryCount;
+  let inventoryOpen = false;
+  let pausedForInventory = false;
 
   function show(screenName) {
+    closeInventory();
     Object.entries(screens).forEach(([name, el]) => {
       if (!el) return;
       el.hidden = name !== screenName;
       el.setAttribute("aria-hidden", name !== screenName ? "true" : "false");
     });
+    // Inventory stays available for the whole quest (not the title screen)
+    setInventoryChromeVisible(screenName !== "landing");
+  }
+
+  function setInventoryChromeVisible(visible) {
+    if (!inventoryBtn) return;
+    inventoryBtn.hidden = !visible;
+    if (!visible) closeInventory();
   }
 
   function showGameMessage(text) {
@@ -31,9 +46,6 @@ window.SpaceQuestApp = (() => {
     const tip = document.querySelector("[data-hud-tip]");
     const hp = window.SpaceQuestPlayerState.getHp();
     const maxHp = window.SpaceQuestPlayerState.getMaxHp();
-    const hasEngineKey = window.SpaceQuestInventory.hasKey(
-      window.SpaceQuestInventory.KEY_IDS.ENGINE_ROOM
-    );
 
     if (title) {
       if (room.kind === "start") {
@@ -42,9 +54,6 @@ window.SpaceQuestApp = (() => {
         title.textContent = `${room.name} — HP ${hp}/${maxHp}`;
       } else {
         title.textContent = `${room.name} — HP ${hp}/${maxHp}`;
-      }
-      if (hasEngineKey) {
-        title.textContent += " · Key Card";
       }
     }
     if (tip) {
@@ -67,6 +76,108 @@ window.SpaceQuestApp = (() => {
         }
       }
     }
+  }
+
+  function renderInventoryPanel() {
+    if (!inventoryBody) return;
+    const items = window.SpaceQuestInventory.listItems();
+    const count = items.length;
+
+    if (inventoryCount) {
+      inventoryCount.textContent = String(count);
+      inventoryCount.hidden = count === 0;
+    }
+
+    if (count === 0) {
+      inventoryBody.innerHTML =
+        '<p class="inventory-panel__empty">Your inventory is empty.</p>';
+      return;
+    }
+
+    inventoryBody.innerHTML = `<ul class="inventory-list">${items
+      .map(
+        (item) => `
+      <li class="inventory-item">
+        <p class="inventory-item__name">${item.name}</p>
+        ${
+          item.description
+            ? `<p class="inventory-item__desc">${item.description}</p>`
+            : ""
+        }
+      </li>`
+      )
+      .join("")}</ul>`;
+  }
+
+  function openInventory() {
+    if (!inventoryPanel || inventoryBtn?.hidden) return;
+    renderInventoryPanel();
+    inventoryPanel.hidden = false;
+    inventoryOpen = true;
+    inventoryBtn?.setAttribute("aria-expanded", "true");
+
+    // Pause hallway movement while browsing inventory
+    if (
+      screens.adventure &&
+      !screens.adventure.hidden &&
+      window.SpaceQuestAdventure
+    ) {
+      window.SpaceQuestAdventure.setPaused(true);
+      pausedForInventory = true;
+    }
+  }
+
+  function closeInventory() {
+    if (!inventoryPanel || inventoryPanel.hidden) {
+      inventoryOpen = false;
+      inventoryBtn?.setAttribute("aria-expanded", "false");
+      return;
+    }
+    inventoryPanel.hidden = true;
+    inventoryOpen = false;
+    inventoryBtn?.setAttribute("aria-expanded", "false");
+
+    if (pausedForInventory && window.SpaceQuestAdventure) {
+      // Don't unpause if another modal (search dialog) still needs the pause
+      const dialog = document.getElementById("game-dialog");
+      const dialogOpen = dialog && !dialog.hidden;
+      if (!dialogOpen) {
+        window.SpaceQuestAdventure.setPaused(false);
+      }
+      pausedForInventory = false;
+    }
+  }
+
+  function toggleInventory() {
+    if (inventoryOpen) closeInventory();
+    else openInventory();
+  }
+
+  function mountInventoryUi() {
+    inventoryBtn = document.getElementById("inventory-btn");
+    inventoryPanel = document.getElementById("inventory-panel");
+    inventoryBody = inventoryPanel?.querySelector("[data-inventory-body]");
+    inventoryCount = inventoryBtn?.querySelector("[data-inventory-count]");
+
+    inventoryBtn?.addEventListener("click", () => toggleInventory());
+    inventoryPanel
+      ?.querySelectorAll("[data-inventory-close]")
+      .forEach((el) => {
+        el.addEventListener("click", () => closeInventory());
+      });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && inventoryOpen) {
+        closeInventory();
+      }
+    });
+
+    window.SpaceQuestInventory.onChange(() => {
+      renderInventoryPanel();
+    });
+
+    inventoryBtn?.setAttribute("aria-expanded", "false");
+    renderInventoryPanel();
   }
 
   async function offerAlienSearch() {
@@ -149,6 +260,7 @@ window.SpaceQuestApp = (() => {
   function beginQuest() {
     window.SpaceQuestInventory.reset();
     window.SpaceQuestPlayerState.reset();
+    renderInventoryPanel();
     const landing = screens.landing;
     landing?.classList.add("is-exiting");
     window.setTimeout(() => {
@@ -170,6 +282,7 @@ window.SpaceQuestApp = (() => {
     window.SpaceQuestDialog.mount(document.getElementById("game-dialog"));
     window.SpaceQuestInventory.reset();
     window.SpaceQuestPlayerState.reset();
+    mountInventoryUi();
 
     document
       .getElementById("begin-quest")

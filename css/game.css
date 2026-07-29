@@ -769,6 +769,201 @@
   display: none !important;
 }
 
+/* —— Persistent inventory chrome —— */
+
+.inventory-btn {
+  position: fixed;
+  top: max(0.85rem, env(safe-area-inset-top));
+  right: max(0.85rem, env(safe-area-inset-right));
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  appearance: none;
+  border: 1px solid rgba(94, 234, 212, 0.35);
+  cursor: pointer;
+  font-family: "Outfit", sans-serif;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.03em;
+  padding: 0.65rem 0.95rem;
+  border-radius: 12px;
+  color: #eaf2ff;
+  background: linear-gradient(180deg, rgba(28, 46, 74, 0.95), rgba(12, 20, 36, 0.96));
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  transition: transform 160ms var(--ease-out, ease), filter 160ms ease;
+}
+
+.inventory-btn[hidden] {
+  display: none !important;
+}
+
+.inventory-btn:hover,
+.inventory-btn:focus-visible {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+.inventory-btn:focus-visible {
+  outline: 3px solid var(--nebula-cyan, #5eead4);
+  outline-offset: 3px;
+}
+
+.inventory-btn__count {
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #062028;
+  background: linear-gradient(180deg, #9af0e4, #3ec7c0);
+}
+
+.inventory-btn__count[hidden] {
+  display: none !important;
+}
+
+.inventory-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: max(4.5rem, calc(env(safe-area-inset-top) + 3.75rem))
+    max(0.85rem, env(safe-area-inset-right))
+    1rem
+    1rem;
+}
+
+.inventory-panel[hidden] {
+  display: none !important;
+}
+
+.inventory-panel__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 8, 18, 0.45);
+}
+
+.inventory-panel__card {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 360px);
+  max-height: min(70vh, 480px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  overflow: hidden;
+  color: #eaf2ff;
+  font-family: "Outfit", sans-serif;
+  background:
+    linear-gradient(180deg, rgba(22, 38, 64, 0.98), rgba(10, 16, 30, 0.98));
+  border: 1px solid rgba(94, 234, 212, 0.32);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  animation: inventory-rise 0.28s var(--ease-out, ease) both;
+}
+
+.inventory-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid rgba(148, 210, 230, 0.18);
+}
+
+.inventory-panel__header h2 {
+  margin: 0;
+  font-family: "Baloo 2", system-ui, sans-serif;
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #fff4c8;
+  text-shadow: 0 2px 0 #8a6418;
+}
+
+.inventory-panel__close {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 10px;
+  font-size: 1.35rem;
+  line-height: 1;
+  color: #eaf2ff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.inventory-panel__close:hover,
+.inventory-panel__close:focus-visible {
+  background: rgba(94, 234, 212, 0.2);
+}
+
+.inventory-panel__close:focus-visible {
+  outline: 2px solid var(--nebula-cyan, #5eead4);
+  outline-offset: 2px;
+}
+
+.inventory-panel__body {
+  padding: 0.9rem 1rem 1.1rem;
+  overflow: auto;
+}
+
+.inventory-panel__empty {
+  margin: 0;
+  padding: 0.85rem 0.4rem;
+  text-align: center;
+  color: rgba(234, 242, 255, 0.72);
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.inventory-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.inventory-item {
+  padding: 0.75rem 0.8rem;
+  border-radius: 12px;
+  background: rgba(7, 12, 24, 0.55);
+  border: 1px solid rgba(148, 210, 230, 0.2);
+}
+
+.inventory-item__name {
+  margin: 0;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #fff4c8;
+}
+
+.inventory-item__desc {
+  margin: 0.3rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  color: rgba(234, 242, 255, 0.75);
+}
+
+@keyframes inventory-rise {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @media (max-width: 700px) {
   .battle-stage {
     grid-template-columns: 1fr;
@@ -789,5 +984,15 @@
 
   .adventure-hud {
     font-size: 0.82rem;
+  }
+
+  .inventory-btn {
+    font-size: 0.88rem;
+    padding: 0.55rem 0.8rem;
+  }
+
+  .inventory-panel {
+    justify-content: center;
+    padding-left: 0.85rem;
   }
 }
