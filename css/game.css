@@ -380,6 +380,42 @@
   }
 }
 
+.interact-btn {
+  position: absolute;
+  left: 50%;
+  bottom: 14%;
+  transform: translateX(-50%);
+  z-index: 4;
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  font-family: "Outfit", sans-serif;
+  font-weight: 600;
+  font-size: clamp(0.95rem, 2.2vw, 1.05rem);
+  letter-spacing: 0.02em;
+  padding: 0.75rem 1.2rem;
+  border-radius: 12px;
+  color: #1a1408;
+  background: linear-gradient(180deg, #ffe7a0, #e0b245);
+  box-shadow: 0 6px 0 #b8871d;
+  transition: transform 160ms var(--ease-out, ease), filter 160ms ease;
+}
+
+.interact-btn[hidden] {
+  display: none !important;
+}
+
+.interact-btn:hover,
+.interact-btn:focus-visible {
+  transform: translateX(-50%) translateY(-2px);
+  filter: brightness(1.05);
+}
+
+.interact-btn:focus-visible {
+  outline: 3px solid var(--nebula-cyan, #5eead4);
+  outline-offset: 3px;
+}
+
 .game-dialog {
   position: absolute;
   inset: 0;
@@ -747,6 +783,16 @@
   background: linear-gradient(180deg, #9af0e4, #3ec7c0);
   box-shadow: 0 6px 0 #1f7f9a;
   color: #062028;
+}
+
+.btn-battle--item {
+  background: linear-gradient(180deg, #f0b089, #c45c4a);
+  box-shadow: 0 6px 0 #8a3a2e;
+  color: #2a120c;
+}
+
+.btn-battle--item[hidden] {
+  display: none !important;
 }
 
 .battle-result {

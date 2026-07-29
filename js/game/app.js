@@ -220,6 +220,13 @@ window.SpaceQuestApp = (() => {
           info?.message || "This door is locked and you do not have the key."
         );
       },
+      onPickup: (info) => {
+        if (info?.itemId === window.SpaceQuestInventory.ITEM_IDS.COFFEE) {
+          showGameMessage("Picked up a pot of coffee.");
+        } else {
+          showGameMessage("Item added to inventory.");
+        }
+      },
       onCombat: (encounter) => {
         show("combat");
         window.SpaceQuestCombat.open(encounter, {
