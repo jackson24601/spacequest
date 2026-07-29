@@ -2,11 +2,13 @@
  * Turn-based combat.
  * Player always acts first. Unarmed actions: Punch / Kick.
  * Each has 50% hit chance and deals 1 damage.
+ * Inventory items (e.g. coffee) can add one-time actions.
  */
 window.SpaceQuestCombat = (() => {
   const PLAYER_HIT_CHANCE = 0.5;
   const ENEMY_DEFAULT_HIT_CHANCE = 0.25;
   const UNARMED_DAMAGE = 1;
+  const COFFEE_DAMAGE = 10;
 
   let root;
   let playerSide;
@@ -16,6 +18,7 @@ window.SpaceQuestCombat = (() => {
   let resultEl;
   let resultTextEl;
   let continueBtn;
+  let throwCoffeeBtn;
 
   let encounter = null;
   let handlers = {};
@@ -34,6 +37,7 @@ window.SpaceQuestCombat = (() => {
     resultEl = root.querySelector("[data-combat-result]");
     resultTextEl = root.querySelector("[data-combat-result-text]");
     continueBtn = root.querySelector("[data-combat-continue]");
+    throwCoffeeBtn = root.querySelector('[data-action="throw-coffee"]');
 
     actionsEl?.addEventListener("click", (event) => {
       const btn = event.target.closest("[data-action]");
@@ -41,6 +45,8 @@ window.SpaceQuestCombat = (() => {
       const action = btn.getAttribute("data-action");
       if (action === "punch" || action === "kick") {
         playerAttack(action);
+      } else if (action === "throw-coffee") {
+        throwCoffee();
       }
     });
 
@@ -74,6 +80,23 @@ window.SpaceQuestCombat = (() => {
 
   function clearLog() {
     if (logEl) logEl.innerHTML = "";
+  }
+
+  function hasCoffee() {
+    return window.SpaceQuestInventory.hasItem(
+      window.SpaceQuestInventory.ITEM_IDS.COFFEE
+    );
+  }
+
+  function syncItemActions() {
+    if (!throwCoffeeBtn) return;
+    throwCoffeeBtn.hidden = !hasCoffee();
+  }
+
+  function turnPrompt() {
+    return hasCoffee()
+      ? "Your turn. Choose Punch, Kick, or Throw Coffee."
+      : "Your turn. Choose Punch or Kick.";
   }
 
   function setActionsEnabled(enabled) {
@@ -176,6 +199,40 @@ window.SpaceQuestCombat = (() => {
     await enemyPhase();
   }
 
+  async function throwCoffee() {
+    const target = getSelectedEnemy();
+    if (!target) return;
+    const inv = window.SpaceQuestInventory;
+    const coffeeId = inv.ITEM_IDS.COFFEE;
+    if (!inv.hasItem(coffeeId)) {
+      syncItemActions();
+      return;
+    }
+
+    busy = true;
+    setActionsEnabled(false);
+    turn = "enemy";
+
+    inv.removeItem(coffeeId);
+    syncItemActions();
+
+    target.hp = Math.max(0, target.hp - COFFEE_DAMAGE);
+    renderUnits();
+    floatDamage(target.id, `-${COFFEE_DAMAGE}`, "hit");
+    log(
+      `You hurl the pot of coffee at the ${target.name} for ${COFFEE_DAMAGE} damage!`
+    );
+
+    await wait(650);
+
+    if (livingEnemies().length === 0) {
+      finish("win");
+      return;
+    }
+
+    await enemyPhase();
+  }
+
   async function enemyPhase() {
     for (const enemy of livingEnemies()) {
       const chance = enemy.hitChance ?? ENEMY_DEFAULT_HIT_CHANCE;
@@ -204,7 +261,7 @@ window.SpaceQuestCombat = (() => {
     turn = "player";
     busy = false;
     setActionsEnabled(true);
-    log("Your turn. Choose Punch or Kick.");
+    log(turnPrompt());
   }
 
   function finish(result) {
@@ -267,9 +324,10 @@ window.SpaceQuestCombat = (() => {
 
     selectedEnemyId = livingEnemies()[0]?.id || null;
     renderUnits();
+    syncItemActions();
     setActionsEnabled(true);
     log(`Battle start! A ${enemyUnits.map((e) => e.name).join(", ")} appears.`);
-    log("Your turn. Choose Punch or Kick.");
+    log(turnPrompt());
 
     if (root) {
       root.hidden = false;

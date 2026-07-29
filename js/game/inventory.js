@@ -8,7 +8,17 @@ window.SpaceQuestInventory = (() => {
     MISSION_CONTROL: "mission-control-key",
   };
 
+  const ITEM_IDS = {
+    COFFEE: "coffee",
+    ...KEY_IDS,
+  };
+
   const ITEM_DEFS = {
+    [ITEM_IDS.COFFEE]: {
+      id: ITEM_IDS.COFFEE,
+      name: "Pot of Coffee",
+      description: "Still hot. Can be thrown once in combat for heavy damage.",
+    },
     [KEY_IDS.ENGINE_ROOM]: {
       id: KEY_IDS.ENGINE_ROOM,
       name: "Engine Room Key Card",
@@ -29,6 +39,7 @@ window.SpaceQuestInventory = (() => {
   const KEY_CARD_FIND_CHANCE = 1 / 5;
 
   const items = new Set();
+  const takenWorldPickups = new Set();
   const listeners = new Set();
 
   function notify() {
@@ -46,20 +57,31 @@ window.SpaceQuestInventory = (() => {
     return () => listeners.delete(fn);
   }
 
-  function hasKey(keyId) {
-    return Boolean(keyId) && items.has(keyId);
+  function hasItem(itemId) {
+    return Boolean(itemId) && items.has(itemId);
   }
 
-  function addKey(keyId) {
-    if (!keyId) return false;
+  function hasKey(keyId) {
+    return hasItem(keyId);
+  }
+
+  function addItem(itemId) {
+    if (!itemId) return false;
     const sizeBefore = items.size;
-    items.add(keyId);
+    items.add(itemId);
     if (items.size !== sizeBefore) notify();
     return true;
   }
 
-  function addItem(itemId) {
-    return addKey(itemId);
+  function addKey(keyId) {
+    return addItem(keyId);
+  }
+
+  function removeItem(itemId) {
+    if (!itemId || !items.has(itemId)) return false;
+    items.delete(itemId);
+    notify();
+    return true;
   }
 
   function listKeys() {
@@ -87,8 +109,19 @@ window.SpaceQuestInventory = (() => {
     return items.size === 0;
   }
 
+  function hasTakenWorldPickup(pickupId) {
+    return Boolean(pickupId) && takenWorldPickups.has(pickupId);
+  }
+
+  function takeWorldPickup(pickupId) {
+    if (!pickupId || takenWorldPickups.has(pickupId)) return false;
+    takenWorldPickups.add(pickupId);
+    return true;
+  }
+
   function reset() {
     items.clear();
+    takenWorldPickups.clear();
     notify();
   }
 
@@ -98,15 +131,20 @@ window.SpaceQuestInventory = (() => {
 
   return {
     KEY_IDS,
+    ITEM_IDS,
     ITEM_DEFS,
     KEY_CARD_FIND_CHANCE,
     hasKey,
+    hasItem,
     addKey,
     addItem,
+    removeItem,
     listKeys,
     listItems,
     count,
     isEmpty,
+    hasTakenWorldPickup,
+    takeWorldPickup,
     reset,
     rollKeyCardFind,
     onChange,

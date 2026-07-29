@@ -30,6 +30,9 @@ window.SpaceQuestAdventure = (() => {
   let suppressAlienSpawn = false;
   let corpses = [];
   let interactionPaused = false;
+  let interactBtn = null;
+  let nearbyPickup = null;
+  let onPickup = null;
 
   function aabb(a, b) {
     return (
@@ -669,6 +672,37 @@ window.SpaceQuestAdventure = (() => {
         ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
         ctx.fillStyle = "#8a7055";
         ctx.fillRect(prop.x + 8, prop.y + 8, prop.w - 16, prop.h - 16);
+      } else if (prop.type === "coffee-pot") {
+        if (window.SpaceQuestInventory.hasTakenWorldPickup(prop.id)) {
+          // already collected — skip drawing
+        } else {
+          // Pot body
+          ctx.fillStyle = "#2a221c";
+          ctx.fillRect(prop.x + 6, prop.y + 14, prop.w - 12, prop.h - 18);
+          ctx.fillStyle = "#5c4332";
+          ctx.fillRect(prop.x + 8, prop.y + 16, prop.w - 16, prop.h - 24);
+          // Lid
+          ctx.fillStyle = "#1a1410";
+          ctx.fillRect(prop.x + 4, prop.y + 10, prop.w - 8, 8);
+          ctx.fillStyle = "#c45c4a";
+          ctx.fillRect(prop.x + prop.w / 2 - 4, prop.y + 4, 8, 8);
+          // Handle
+          ctx.strokeStyle = "#d7c4a8";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(prop.x + prop.w - 2, prop.y + 28, 8, -Math.PI / 2, Math.PI / 2);
+          ctx.stroke();
+          // Steam
+          ctx.strokeStyle = "rgba(230, 236, 245, 0.55)";
+          ctx.lineWidth = 2;
+          for (let i = 0; i < 3; i += 1) {
+            const sx = prop.x + 10 + i * 7;
+            ctx.beginPath();
+            ctx.moveTo(sx, prop.y + 4);
+            ctx.quadraticCurveTo(sx + 3, prop.y - 4, sx, prop.y - 10);
+            ctx.stroke();
+          }
+        }
       } else if (prop.type === "bench") {
         ctx.fillStyle = "#3a4558";
         ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
@@ -919,6 +953,61 @@ window.SpaceQuestAdventure = (() => {
     ctx.restore();
   }
 
+  function isPickupAvailable(prop) {
+    if (!prop?.itemId || !prop.id) return false;
+    return !window.SpaceQuestInventory.hasTakenWorldPickup(prop.id);
+  }
+
+  function getNearbyPickup() {
+    if (!room || !player || interactionPaused) return null;
+    const body = playerBox("body");
+    const reach = 52;
+    for (const prop of room.props || []) {
+      if (!isPickupAvailable(prop)) continue;
+      const box = {
+        x: prop.x - reach,
+        y: prop.y - reach,
+        w: prop.w + reach * 2,
+        h: prop.h + reach * 2,
+      };
+      if (aabb(body, box)) return prop;
+    }
+    return null;
+  }
+
+  function updateInteractPrompt() {
+    nearbyPickup = getNearbyPickup();
+    if (!interactBtn) return;
+    if (nearbyPickup) {
+      interactBtn.hidden = false;
+      interactBtn.textContent = nearbyPickup.pickupLabel || "Pick Up";
+    } else {
+      interactBtn.hidden = true;
+    }
+  }
+
+  function hideInteractPrompt() {
+    nearbyPickup = null;
+    if (interactBtn) interactBtn.hidden = true;
+  }
+
+  function tryInteract() {
+    const prop = nearbyPickup || getNearbyPickup();
+    if (!prop) return false;
+    const inv = window.SpaceQuestInventory;
+    if (!inv.takeWorldPickup(prop.id)) return false;
+    inv.addItem(prop.itemId);
+    hideInteractPrompt();
+    if (typeof onPickup === "function") {
+      onPickup({
+        pickupId: prop.id,
+        itemId: prop.itemId,
+        label: prop.pickupLabel,
+      });
+    }
+    return true;
+  }
+
   function movementHint() {
     const axes = room.movement?.axes;
     if (axes === "horizontal") return "Move with ← → Arrow Keys";
@@ -1008,9 +1097,11 @@ window.SpaceQuestAdventure = (() => {
       player.moving = moved && (dir.x !== 0 || dir.y !== 0);
       updatePlayerAnim(dt, dir.x);
       updateEnemies(dt);
+      updateInteractPrompt();
 
       const transition = checkRoomTransition();
       if (transition) {
+        hideInteractPrompt();
         // Keep held keys so walking continues across hallway transitions
         loadRoom(transition.roomId, transition.entryDir);
       }
@@ -1018,6 +1109,7 @@ window.SpaceQuestAdventure = (() => {
       const touched = checkEnemyContact();
       if (touched) {
         clearAlienSpawnTimer();
+        hideInteractPrompt();
         stop();
         if (typeof onCombat === "function") {
           onCombat({
@@ -1032,6 +1124,7 @@ window.SpaceQuestAdventure = (() => {
     } else {
       player.moving = false;
       updatePlayerAnim(dt, 0);
+      hideInteractPrompt();
     }
 
     drawRoomBackdrop();
@@ -1047,6 +1140,16 @@ window.SpaceQuestAdventure = (() => {
     onCombat = options.onCombat;
     onRoomChange = options.onRoomChange;
     onLockedDoor = options.onLockedDoor;
+    onPickup = options.onPickup || null;
+    interactBtn = options.interactBtn || document.getElementById("interact-btn");
+
+    if (interactBtn && !interactBtn.dataset.bound) {
+      interactBtn.addEventListener("click", (event) => {
+        event.preventDefault();
+        tryInteract();
+      });
+      interactBtn.dataset.bound = "true";
+    }
 
     const catalog = window.SpaceQuestRooms;
     canvas.width = catalog.WIDTH;
@@ -1054,6 +1157,7 @@ window.SpaceQuestAdventure = (() => {
 
     await prepareAssets();
     interactionPaused = false;
+    hideInteractPrompt();
     // After winning a fight, skip an immediate re-roll in the same room visit
     suppressAlienSpawn = Boolean(options.defeatedEnemyId);
     loadRoom(options.roomId || catalog.startRoomId, options.entryDir || null);
@@ -1087,6 +1191,7 @@ window.SpaceQuestAdventure = (() => {
   function stop() {
     running = false;
     interactionPaused = false;
+    hideInteractPrompt();
     clearAlienSpawnTimer();
     cancelAnimationFrame(rafId);
     window.SpaceQuestInput.unbind();
@@ -1106,5 +1211,13 @@ window.SpaceQuestAdventure = (() => {
     return corpses.map((c) => ({ ...c }));
   }
 
-  return { start, stop, getRoom, setPaused, markCorpseSearched, getCorpses };
+  return {
+    start,
+    stop,
+    getRoom,
+    setPaused,
+    markCorpseSearched,
+    getCorpses,
+    tryInteract,
+  };
 })();
