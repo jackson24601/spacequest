@@ -6,6 +6,7 @@ window.SpaceQuestInventory = (() => {
     ENGINE_ROOM: "engine-room-key",
     INFIRMARY: "infirmary-key",
     MISSION_CONTROL: "mission-control-key",
+    LODGING_LOCKER: "lodging-locker-key",
   };
 
   const ITEM_IDS = {
@@ -33,6 +34,11 @@ window.SpaceQuestInventory = (() => {
       id: KEY_IDS.MISSION_CONTROL,
       name: "Mission Control Key Card",
       description: "Opens the locked Mission Control door.",
+    },
+    [KEY_IDS.LODGING_LOCKER]: {
+      id: KEY_IDS.LODGING_LOCKER,
+      name: "Foot Locker Key",
+      description: "Opens the foot locker in Lodging.",
     },
   };
 
