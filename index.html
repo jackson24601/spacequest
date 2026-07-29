@@ -160,6 +160,45 @@
       </div>
     </section>
 
+    <button
+      type="button"
+      id="inventory-btn"
+      class="inventory-btn"
+      aria-haspopup="dialog"
+      aria-controls="inventory-panel"
+      hidden
+    >
+      <span class="inventory-btn__label">Inventory</span>
+      <span class="inventory-btn__count" data-inventory-count hidden>0</span>
+    </button>
+
+    <div
+      id="inventory-panel"
+      class="inventory-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="inventory-panel-title"
+      hidden
+    >
+      <div class="inventory-panel__backdrop" data-inventory-close></div>
+      <div class="inventory-panel__card">
+        <header class="inventory-panel__header">
+          <h2 id="inventory-panel-title">Inventory</h2>
+          <button
+            type="button"
+            class="inventory-panel__close"
+            data-inventory-close
+            aria-label="Close inventory"
+          >
+            ×
+          </button>
+        </header>
+        <div class="inventory-panel__body" data-inventory-body>
+          <p class="inventory-panel__empty">Your inventory is empty.</p>
+        </div>
+      </div>
+    </div>
+
     <script src="js/starfield.js"></script>
     <script src="js/game/inventory.js"></script>
     <script src="js/game/player-state.js"></script>
