@@ -227,6 +227,11 @@ window.SpaceQuestApp = (() => {
           showGameMessage("Item added to inventory.");
         }
       },
+      onInteract: (info) => {
+        if (info?.message) {
+          showGameMessage(info.message);
+        }
+      },
       onCombat: (encounter) => {
         show("combat");
         window.SpaceQuestCombat.open(encounter, {

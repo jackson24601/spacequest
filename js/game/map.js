@@ -368,7 +368,18 @@ window.SpaceQuestMap = (() => {
         { type: "locker", x: 320, y: 160, w: 48, h: 100 },
         { type: "locker", x: 320, y: 300, w: 48, h: 100 },
         { type: "locker", x: 592, y: 160, w: 48, h: 100 },
-        { type: "locker", x: 592, y: 300, w: 48, h: 100 }
+        { type: "locker", x: 592, y: 300, w: 48, h: 100 },
+        {
+          type: "foot-locker",
+          id: "lodging-foot-locker",
+          interactLabel: "Open Locker",
+          requiresKeyId: "lodging-locker-key",
+          lockedMessage: "The locker needs a key.",
+          x: 400,
+          y: 415,
+          w: 160,
+          h: 48,
+        }
       );
       solids.push(
         { x: 100, y: 140, w: 200, h: 120 },
@@ -378,7 +389,8 @@ window.SpaceQuestMap = (() => {
         { x: 320, y: 160, w: 48, h: 100 },
         { x: 320, y: 300, w: 48, h: 100 },
         { x: 592, y: 160, w: 48, h: 100 },
-        { x: 592, y: 300, w: 48, h: 100 }
+        { x: 592, y: 300, w: 48, h: 100 },
+        { x: 400, y: 415, w: 160, h: 48 }
       );
     } else if (kind === "supply-room") {
       // Shelves/crates on the sides with a clear center aisle

@@ -31,8 +31,9 @@ window.SpaceQuestAdventure = (() => {
   let corpses = [];
   let interactionPaused = false;
   let interactBtn = null;
-  let nearbyPickup = null;
+  let nearbyInteractable = null;
   let onPickup = null;
+  let onInteract = null;
 
   function aabb(a, b) {
     return (
@@ -727,6 +728,20 @@ window.SpaceQuestAdventure = (() => {
         ctx.strokeRect(prop.x + 0.5, prop.y + 0.5, prop.w - 1, prop.h - 1);
         ctx.fillStyle = "#e0b245";
         ctx.fillRect(prop.x + prop.w - 14, prop.y + prop.h / 2 - 4, 8, 8);
+      } else if (prop.type === "foot-locker") {
+        // Low trunk at floor level
+        ctx.fillStyle = "#3a2a1c";
+        ctx.fillRect(prop.x, prop.y + 10, prop.w, prop.h - 10);
+        ctx.fillStyle = "#6b4e32";
+        ctx.fillRect(prop.x + 4, prop.y + 14, prop.w - 8, prop.h - 18);
+        ctx.fillStyle = "#8a6a3d";
+        ctx.fillRect(prop.x + 4, prop.y + 6, prop.w - 8, 12);
+        ctx.fillStyle = "#c9a227";
+        ctx.fillRect(prop.x + prop.w / 2 - 14, prop.y + 22, 28, 10);
+        ctx.fillStyle = "#1a1410";
+        ctx.fillRect(prop.x + prop.w / 2 - 3, prop.y + 24, 6, 6);
+        ctx.strokeStyle = "rgba(255,255,255,0.12)";
+        ctx.strokeRect(prop.x + 0.5, prop.y + 6.5, prop.w - 1, prop.h - 7);
       } else if (prop.type === "shelf") {
         ctx.fillStyle = "#2c3a4f";
         ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
@@ -958,12 +973,20 @@ window.SpaceQuestAdventure = (() => {
     return !window.SpaceQuestInventory.hasTakenWorldPickup(prop.id);
   }
 
-  function getNearbyPickup() {
+  function isInteractable(prop) {
+    if (!prop) return false;
+    if (isPickupAvailable(prop)) return true;
+    if (prop.requiresKeyId && prop.id) return true;
+    if (prop.interactLabel && prop.id && !prop.itemId) return true;
+    return false;
+  }
+
+  function getNearbyInteractable() {
     if (!room || !player || interactionPaused) return null;
     const body = playerBox("body");
     const reach = 52;
     for (const prop of room.props || []) {
-      if (!isPickupAvailable(prop)) continue;
+      if (!isInteractable(prop)) continue;
       const box = {
         x: prop.x - reach,
         y: prop.y - reach,
@@ -976,25 +999,53 @@ window.SpaceQuestAdventure = (() => {
   }
 
   function updateInteractPrompt() {
-    nearbyPickup = getNearbyPickup();
+    nearbyInteractable = getNearbyInteractable();
     if (!interactBtn) return;
-    if (nearbyPickup) {
+    if (nearbyInteractable) {
       interactBtn.hidden = false;
-      interactBtn.textContent = nearbyPickup.pickupLabel || "Pick Up";
+      interactBtn.textContent =
+        nearbyInteractable.interactLabel ||
+        nearbyInteractable.pickupLabel ||
+        "Interact";
     } else {
       interactBtn.hidden = true;
     }
   }
 
   function hideInteractPrompt() {
-    nearbyPickup = null;
+    nearbyInteractable = null;
     if (interactBtn) interactBtn.hidden = true;
   }
 
   function tryInteract() {
-    const prop = nearbyPickup || getNearbyPickup();
+    const prop = nearbyInteractable || getNearbyInteractable();
     if (!prop) return false;
     const inv = window.SpaceQuestInventory;
+
+    // Locked container (e.g. Lodging foot locker)
+    if (prop.requiresKeyId) {
+      if (!inv.hasKey(prop.requiresKeyId)) {
+        if (typeof onInteract === "function") {
+          onInteract({
+            type: "locked",
+            id: prop.id,
+            message: prop.lockedMessage || "The locker needs a key.",
+          });
+        }
+        return true;
+      }
+      if (typeof onInteract === "function") {
+        onInteract({
+          type: "opened",
+          id: prop.id,
+          message: prop.openMessage || "The locker opens.",
+        });
+      }
+      return true;
+    }
+
+    // World item pickup
+    if (!prop.itemId || !prop.id) return false;
     if (!inv.takeWorldPickup(prop.id)) return false;
     inv.addItem(prop.itemId);
     hideInteractPrompt();
@@ -1141,6 +1192,7 @@ window.SpaceQuestAdventure = (() => {
     onRoomChange = options.onRoomChange;
     onLockedDoor = options.onLockedDoor;
     onPickup = options.onPickup || null;
+    onInteract = options.onInteract || null;
     interactBtn = options.interactBtn || document.getElementById("interact-btn");
 
     if (interactBtn && !interactBtn.dataset.bound) {
