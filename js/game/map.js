@@ -432,7 +432,19 @@ window.SpaceQuestMap = (() => {
         { type: "thruster", x: 690, y: 420, w: 110, h: 42 },
         { type: "hazard", x: 250, y: 300, w: 340, h: 14 },
         { type: "panel", x: 560, y: 150, w: 60, h: 90 },
-        { type: "panel", x: 560, y: 320, w: 60, h: 90 }
+        { type: "panel", x: 560, y: 320, w: 60, h: 90 },
+        {
+          type: "wounded-crewmate",
+          id: "engine-room-crewmate",
+          autoTalk: true,
+          givesItemId: "blaster",
+          dialogue:
+            "Oh, there is someone still alive. I thought everyone was dead. Here, take my blaster. And get out of here. There is an escape pod in mission control. You've got to get there.",
+          x: 340,
+          y: 235,
+          w: 84,
+          h: 52,
+        }
       );
       solids.push(
         { x: 110, y: 110, w: 100, h: 150 },

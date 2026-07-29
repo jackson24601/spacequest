@@ -206,6 +206,16 @@ window.SpaceQuestApp = (() => {
     adventure.setPaused(false);
   }
 
+  async function handleCrewmateDialogue(info) {
+    const adventure = window.SpaceQuestAdventure;
+    adventure.setPaused(true);
+    await window.SpaceQuestDialog.notice(info.message);
+    if (info.itemId === window.SpaceQuestInventory.ITEM_IDS.BLASTER) {
+      showGameMessage("Blaster added to inventory.");
+    }
+    adventure.setPaused(false);
+  }
+
   async function startAdventure(options = {}) {
     show("adventure");
     await window.SpaceQuestAdventure.start({
@@ -228,6 +238,10 @@ window.SpaceQuestApp = (() => {
         }
       },
       onInteract: (info) => {
+        if (info?.type === "dialogue" && info.message) {
+          handleCrewmateDialogue(info);
+          return;
+        }
         if (info?.message) {
           showGameMessage(info.message);
         }
