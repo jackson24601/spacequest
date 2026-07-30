@@ -12,6 +12,8 @@ window.SpaceQuestInventory = (() => {
   const ITEM_IDS = {
     COFFEE: "coffee",
     BLASTER: "blaster",
+    PLASMA_RIFFLE: "plasma-riffle",
+    PLASMA_CARTRIDGE: "plasma-cartridge",
     ...KEY_IDS,
   };
 
@@ -25,6 +27,17 @@ window.SpaceQuestInventory = (() => {
       id: ITEM_IDS.BLASTER,
       name: "Blaster",
       description: "A crewmate's sidearm. Still charged.",
+    },
+    [ITEM_IDS.PLASMA_RIFFLE]: {
+      id: ITEM_IDS.PLASMA_RIFFLE,
+      name: "Plasma Riffle",
+      description:
+        "Powerful, but useless without an ammunition cartridge.",
+    },
+    [ITEM_IDS.PLASMA_CARTRIDGE]: {
+      id: ITEM_IDS.PLASMA_CARTRIDGE,
+      name: "Plasma Cartridge",
+      description: "Ammunition for the Plasma Riffle.",
     },
     [KEY_IDS.ENGINE_ROOM]: {
       id: KEY_IDS.ENGINE_ROOM,
@@ -141,6 +154,10 @@ window.SpaceQuestInventory = (() => {
     return Math.random() < KEY_CARD_FIND_CHANCE;
   }
 
+  function canUsePlasmaRiffle() {
+    return hasItem(ITEM_IDS.PLASMA_RIFFLE) && hasItem(ITEM_IDS.PLASMA_CARTRIDGE);
+  }
+
   return {
     KEY_IDS,
     ITEM_IDS,
@@ -159,6 +176,7 @@ window.SpaceQuestInventory = (() => {
     takeWorldPickup,
     reset,
     rollKeyCardFind,
+    canUsePlasmaRiffle,
     onChange,
   };
 })();

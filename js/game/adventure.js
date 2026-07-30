@@ -704,6 +704,29 @@ window.SpaceQuestAdventure = (() => {
             ctx.stroke();
           }
         }
+      } else if (prop.type === "plasma-riffle") {
+        if (window.SpaceQuestInventory.hasTakenWorldPickup(prop.id)) {
+          // already collected — skip drawing
+        } else {
+          // Weapon rack / rifle on the back wall
+          ctx.fillStyle = "#1a2434";
+          ctx.fillRect(prop.x - 8, prop.y - 6, prop.w + 16, prop.h + 14);
+          ctx.fillStyle = "#2c3a52";
+          ctx.fillRect(prop.x - 4, prop.y - 2, prop.w + 8, 4);
+          // Barrel / body
+          ctx.fillStyle = "#8fa0b8";
+          ctx.fillRect(prop.x, prop.y + 8, prop.w - 8, 8);
+          ctx.fillStyle = "#3ec7c0";
+          ctx.fillRect(prop.x + prop.w - 22, prop.y + 6, 14, 12);
+          ctx.fillStyle = "#c45c4a";
+          ctx.fillRect(prop.x + 10, prop.y + 10, 18, 4);
+          // Stock
+          ctx.fillStyle = "#5c4332";
+          ctx.fillRect(prop.x + prop.w - 10, prop.y + 6, 10, 14);
+          // Empty mag well marker
+          ctx.fillStyle = "#ffd56a";
+          ctx.fillRect(prop.x + 28, prop.y + 18, 10, 6);
+        }
       } else if (prop.type === "bench") {
         ctx.fillStyle = "#3a4558";
         ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
@@ -1141,6 +1164,7 @@ window.SpaceQuestAdventure = (() => {
         pickupId: prop.id,
         itemId: prop.itemId,
         label: prop.pickupLabel,
+        message: prop.pickupMessage || null,
       });
     }
     return true;
