@@ -804,6 +804,29 @@
   transform: scaleX(-1);
 }
 
+.battle-unit--boss {
+  min-width: 160px;
+}
+
+.battle-unit--boss .battle-sprite-wrap {
+  width: 160px;
+  height: 200px;
+}
+
+.battle-unit--boss .battle-sprite {
+  width: 140px;
+}
+
+.battle-unit--boss .battle-hp {
+  width: 140px;
+}
+
+.battle-unit--boss .battle-name {
+  font-size: 1rem;
+  color: #5a1020;
+  font-weight: 800;
+}
+
 .battle-name {
   font-size: 0.85rem;
   font-weight: 600;

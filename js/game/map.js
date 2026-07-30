@@ -17,7 +17,7 @@ window.SpaceQuestMap = (() => {
 
   const GRID = [
     ["", "", "", "", "", "", "", "", "Hallway", ""],
-    ["", "", "", "", "Mess Hall", "", "Supply Room", "", "Hallway", ""],
+    ["", "Escape Pod", "", "", "Mess Hall", "", "Supply Room", "", "Hallway", ""],
     [
       "",
       "Mission Control",
@@ -66,6 +66,13 @@ window.SpaceQuestMap = (() => {
       id: "mission-control",
       locked: true,
       keyId: "mission-control-key",
+    },
+    "Escape Pod": {
+      id: "escape-pod",
+      locked: false,
+      keyId: null,
+      // Opens only after the Mission Control boss is defeated
+      requiresClearId: "mission-control-boss",
     },
     "Engine Room": {
       id: "engine-room",
@@ -243,77 +250,74 @@ window.SpaceQuestMap = (() => {
     return { solids, props, axes };
   }
 
-  function buildSpecialLayout(kind, exits) {
+  function buildSpecialShell(exits) {
     const solids = [];
     const props = [];
-
-    // Outer bulkheads with a single doorway opening
     const doorGap = 180;
-    solids.push(
-      { x: 0, y: 0, w: WIDTH, h: 70 },
-      { x: 0, y: HEIGHT - 70, w: WIDTH, h: 70 },
-      { x: 0, y: 70, w: 70, h: HEIGHT - 140 },
-      { x: WIDTH - 70, y: 70, w: 70, h: HEIGHT - 140 }
-    );
+    const wall = 70;
 
-    // Carve doorway by not covering the exit edge with an extra blocker;
-    // instead mark a door prop and keep edge open via exits.
+    // Top
     if (exits.up) {
-      // open top center: replace top solid with two pieces
-      solids.length = 0;
       solids.push(
-        { x: 0, y: 0, w: (WIDTH - doorGap) / 2, h: 70 },
-        { x: (WIDTH + doorGap) / 2, y: 0, w: (WIDTH - doorGap) / 2, h: 70 },
-        { x: 0, y: HEIGHT - 70, w: WIDTH, h: 70 },
-        { x: 0, y: 70, w: 70, h: HEIGHT - 140 },
-        { x: WIDTH - 70, y: 70, w: 70, h: HEIGHT - 140 }
+        { x: 0, y: 0, w: (WIDTH - doorGap) / 2, h: wall },
+        { x: (WIDTH + doorGap) / 2, y: 0, w: (WIDTH - doorGap) / 2, h: wall }
       );
       props.push(doorProp("up", false));
-    } else if (exits.down) {
-      solids.length = 0;
+    } else {
+      solids.push({ x: 0, y: 0, w: WIDTH, h: wall });
+    }
+
+    // Bottom
+    if (exits.down) {
       solids.push(
-        { x: 0, y: 0, w: WIDTH, h: 70 },
-        { x: 0, y: HEIGHT - 70, w: (WIDTH - doorGap) / 2, h: 70 },
+        { x: 0, y: HEIGHT - wall, w: (WIDTH - doorGap) / 2, h: wall },
         {
           x: (WIDTH + doorGap) / 2,
-          y: HEIGHT - 70,
+          y: HEIGHT - wall,
           w: (WIDTH - doorGap) / 2,
-          h: 70,
-        },
-        { x: 0, y: 70, w: 70, h: HEIGHT - 140 },
-        { x: WIDTH - 70, y: 70, w: 70, h: HEIGHT - 140 }
+          h: wall,
+        }
       );
       props.push(doorProp("down", false));
-    } else if (exits.left) {
-      solids.length = 0;
+    } else {
+      solids.push({ x: 0, y: HEIGHT - wall, w: WIDTH, h: wall });
+    }
+
+    // Left
+    if (exits.left) {
       solids.push(
-        { x: 0, y: 0, w: WIDTH, h: 70 },
-        { x: 0, y: HEIGHT - 70, w: WIDTH, h: 70 },
-        { x: 0, y: 70, w: 70, h: (HEIGHT - 140 - doorGap) / 2 },
+        { x: 0, y: wall, w: wall, h: (HEIGHT - 140 - doorGap) / 2 },
         {
           x: 0,
-          y: 70 + (HEIGHT - 140 - doorGap) / 2 + doorGap,
-          w: 70,
+          y: wall + (HEIGHT - 140 - doorGap) / 2 + doorGap,
+          w: wall,
           h: (HEIGHT - 140 - doorGap) / 2,
-        },
-        { x: WIDTH - 70, y: 70, w: 70, h: HEIGHT - 140 }
+        }
       );
       props.push(doorProp("left", false));
-    } else if (exits.right) {
-      solids.length = 0;
+    } else {
+      solids.push({ x: 0, y: wall, w: wall, h: HEIGHT - 140 });
+    }
+
+    // Right
+    if (exits.right) {
       solids.push(
-        { x: 0, y: 0, w: WIDTH, h: 70 },
-        { x: 0, y: HEIGHT - 70, w: WIDTH, h: 70 },
-        { x: 0, y: 70, w: 70, h: HEIGHT - 140 },
-        { x: WIDTH - 70, y: 70, w: 70, h: (HEIGHT - 140 - doorGap) / 2 },
         {
-          x: WIDTH - 70,
-          y: 70 + (HEIGHT - 140 - doorGap) / 2 + doorGap,
-          w: 70,
+          x: WIDTH - wall,
+          y: wall,
+          w: wall,
+          h: (HEIGHT - 140 - doorGap) / 2,
+        },
+        {
+          x: WIDTH - wall,
+          y: wall + (HEIGHT - 140 - doorGap) / 2 + doorGap,
+          w: wall,
           h: (HEIGHT - 140 - doorGap) / 2,
         }
       );
       props.push(doorProp("right", false));
+    } else {
+      solids.push({ x: WIDTH - wall, y: wall, w: wall, h: HEIGHT - 140 });
     }
 
     props.push(
@@ -321,6 +325,14 @@ window.SpaceQuestMap = (() => {
       { type: "light", x: 460, y: 86, w: 28, h: 12 },
       { type: "light", x: 740, y: 86, w: 28, h: 12 }
     );
+
+    return { solids, props };
+  }
+
+  function buildSpecialLayout(kind, exits) {
+    const shell = buildSpecialShell(exits);
+    const solids = shell.solids;
+    const props = shell.props;
 
     if (kind === "mess-hall") {
       // Cafeteria tables + food dispenser wall (clear center aisle)
@@ -518,6 +530,50 @@ window.SpaceQuestMap = (() => {
         { x: 360, y: 120, w: 70, h: 90 },
         { x: 530, y: 120, w: 70, h: 90 }
       );
+    } else if (kind === "mission-control") {
+      // Bridge: side consoles, center command floor, Escape Pod hatch up top
+      props.push(
+        { type: "label", x: 330, y: 96, text: "MISSION CONTROL" },
+        { type: "label", x: 408, y: 36, text: "ESCAPE POD" },
+        { type: "holo-screen", x: 300, y: 110, w: 360, h: 90 },
+        { type: "console", x: 90, y: 140, w: 130, h: 70 },
+        { type: "console", x: 90, y: 250, w: 130, h: 70 },
+        { type: "console", x: 90, y: 360, w: 130, h: 70 },
+        { type: "console", x: 740, y: 140, w: 130, h: 70 },
+        { type: "console", x: 740, y: 250, w: 130, h: 70 },
+        { type: "console", x: 740, y: 360, w: 130, h: 70 },
+        { type: "command-chair", x: 430, y: 220, w: 100, h: 80 },
+        { type: "floor-ring", x: 340, y: 200, w: 280, h: 160 },
+        // Dead crew in blood — walkable props
+        { type: "dead-astronaut", x: 280, y: 300, w: 70, h: 48, facing: 1 },
+        { type: "dead-astronaut", x: 560, y: 170, w: 74, h: 50, facing: -1 },
+        { type: "dead-astronaut", x: 390, y: 390, w: 80, h: 52, facing: 1 },
+        { type: "dead-astronaut", x: 620, y: 340, w: 68, h: 46, facing: -1 },
+        { type: "dead-astronaut", x: 250, y: 180, w: 72, h: 48, facing: 1 }
+      );
+      // Keep a wide center aisle so the boss can chase from mid-room to the door
+      solids.push(
+        { x: 90, y: 140, w: 130, h: 70 },
+        { x: 90, y: 250, w: 130, h: 70 },
+        { x: 90, y: 360, w: 130, h: 70 },
+        { x: 740, y: 140, w: 130, h: 70 },
+        { x: 740, y: 250, w: 130, h: 70 },
+        { x: 740, y: 360, w: 130, h: 70 },
+        { x: 300, y: 110, w: 360, h: 36 }
+      );
+    } else if (kind === "escape-pod") {
+      props.push(
+        { type: "label", x: 390, y: 100, text: "ESCAPE POD" },
+        { type: "pod-bay", x: 280, y: 160, w: 400, h: 260 },
+        { type: "console", x: 120, y: 200, w: 120, h: 70 },
+        { type: "console", x: 720, y: 200, w: 120, h: 70 }
+      );
+      solids.push(
+        { x: 280, y: 160, w: 400, h: 40 },
+        { x: 280, y: 380, w: 400, h: 40 },
+        { x: 120, y: 200, w: 120, h: 70 },
+        { x: 720, y: 200, w: 120, h: 70 }
+      );
     } else {
       // Remaining locked special rooms still get a simple stub layout
       props.push(
@@ -568,6 +624,19 @@ window.SpaceQuestMap = (() => {
           palette.accent = "#5ee0d8";
           palette.accentWarm = "#8fd6ff";
           palette.metal = "#a8c4d4";
+        } else if (special?.id === "mission-control") {
+          palette.floor = "#3a4558";
+          palette.wall = "#1a2740";
+          palette.wallDark = "#0c1628";
+          palette.accent = "#4fd0ff";
+          palette.accentWarm = "#e0b245";
+          palette.metal = "#9eb0c8";
+          palette.alarm = "#ff4d4d";
+        } else if (special?.id === "escape-pod") {
+          palette.floor = "#2f3d4a";
+          palette.wall = "#173040";
+          palette.wallDark = "#0a1a24";
+          palette.accent = "#5ee0d8";
         }
 
         rooms[id] = {
@@ -577,10 +646,11 @@ window.SpaceQuestMap = (() => {
           specialType: special?.id || null,
           locked: Boolean(special?.locked),
           keyId: special?.keyId || null,
+          requiresClearId: special?.requiresClearId || null,
           grid: { row, col },
           spawn: { centered: true, y: isHall ? 250 : 260 },
           movement: { axes: layout.axes },
-          alarm: isHall,
+          alarm: isHall || special?.id === "mission-control",
           solids: layout.solids,
           props: layout.props,
           enemies: [],

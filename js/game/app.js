@@ -66,6 +66,12 @@ window.SpaceQuestApp = (() => {
         } else if (room.specialType === "infirmary") {
           tip.innerHTML =
             "<strong>Tip:</strong> Clear the aliens, then check the back of the room";
+        } else if (room.specialType === "mission-control") {
+          tip.innerHTML =
+            "<strong>Tip:</strong> Survive the boss — Escape Pod is sealed until then";
+        } else if (room.specialType === "escape-pod") {
+          tip.innerHTML =
+            "<strong>Tip:</strong> Escape pod bay — exit down to Mission Control";
         } else {
           tip.innerHTML =
             "<strong>Tip:</strong> Explore, then leave through the door";
@@ -379,13 +385,21 @@ window.SpaceQuestApp = (() => {
             if (encounter.roomId === "infirmary") {
               window.SpaceQuestInventory.takeWorldPickup("infirmary-ambush");
             }
+            const isBoss =
+              encounter.roomId === "mission-control" ||
+              wave.some((e) => e.type === "alien-boss");
+            if (isBoss) {
+              window.SpaceQuestInventory.takeWorldPickup(
+                "mission-control-boss"
+              );
+            }
             startAdventure({
               roomId: encounter.roomId,
               resumePosition: encounter.player,
               defeatedEnemyId: encounter.enemy?.id || wave[0]?.id,
               placeCorpse: multi ? null : encounter.enemy,
-              afterCombatLoot: !multi,
-              defeatedEnemy: multi ? null : encounter.enemy,
+              afterCombatLoot: !multi && !isBoss,
+              defeatedEnemy: multi || isBoss ? null : encounter.enemy,
             });
           },
           onLose: () => {
