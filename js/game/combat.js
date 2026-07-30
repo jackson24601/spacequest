@@ -403,11 +403,13 @@ window.SpaceQuestCombat = (() => {
     enemyUnits = rawEnemies.map((enemy, index) => ({
       id: enemy.id || `enemy-${index}`,
       name: enemy.name || "Alien",
+      type: enemy.type || null,
       hp: enemy.hp ?? enemy.maxHp ?? 5,
       maxHp: enemy.maxHp ?? enemy.hp ?? 5,
       attackDamage: enemy.attackDamage ?? 1,
       hitChance: enemy.hitChance ?? ENEMY_DEFAULT_HIT_CHANCE,
       sprite: enemy.sprite || "assets/sprites/alien-l1.png",
+      deadSprite: enemy.deadSprite || null,
     }));
 
     selectedEnemyId = livingEnemies()[0]?.id || null;

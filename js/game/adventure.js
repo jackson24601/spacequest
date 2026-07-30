@@ -7,6 +7,8 @@ window.SpaceQuestAdventure = (() => {
   const EDGE = 18;
   const ALIEN_SPAWN_DELAY = 1;
   const ALIEN_SPAWN_CHANCE = 0.5;
+  const ALIEN_L2_SPAWN_DELAY = 2;
+  const ALIEN_L2_SPAWN_CHANCE = 1 / 5;
 
   let canvas;
   let ctx;
@@ -19,6 +21,7 @@ window.SpaceQuestAdventure = (() => {
   let playerSheet;
   let enemyImage;
   let enemyDeadImage;
+  let enemyImages = {};
   let onCombat;
   let onRoomChange;
   let onLockedDoor;
@@ -27,6 +30,7 @@ window.SpaceQuestAdventure = (() => {
   let transitionLock = 0;
   let lockedDoorCooldown = 0;
   let alienSpawnTimer = null;
+  let alienL2SpawnTimer = null;
   let suppressAlienSpawn = false;
   let corpses = [];
   let interactionPaused = false;
@@ -64,15 +68,37 @@ window.SpaceQuestAdventure = (() => {
     }
     if (!enemyImage) {
       enemyImage = await loadImage("assets/sprites/alien-l1.png");
+      enemyImages["assets/sprites/alien-l1.png"] = enemyImage;
     }
     if (!enemyDeadImage) {
       try {
         enemyDeadImage = await loadImage("assets/sprites/alien-l1-dead.png");
+        enemyImages["assets/sprites/alien-l1-dead.png"] = enemyDeadImage;
       } catch (err) {
         enemyDeadImage = null;
       }
     }
+    const l2Sprite = "assets/sprites/alien-l2.png";
+    const l2Dead = "assets/sprites/alien-l2-dead.png";
+    if (!enemyImages[l2Sprite]) {
+      try {
+        enemyImages[l2Sprite] = await loadImage(l2Sprite);
+      } catch (err) {
+        enemyImages[l2Sprite] = enemyImage;
+      }
+    }
+    if (!enemyImages[l2Dead]) {
+      try {
+        enemyImages[l2Dead] = await loadImage(l2Dead);
+      } catch (err) {
+        enemyImages[l2Dead] = enemyDeadImage;
+      }
+    }
     assetsReady = Boolean(playerSheet && enemyImage);
+  }
+
+  function spriteImage(src, fallback = enemyImage) {
+    return (src && enemyImages[src]) || fallback;
   }
 
   function clearAlienSpawnTimer() {
@@ -80,10 +106,18 @@ window.SpaceQuestAdventure = (() => {
       window.clearTimeout(alienSpawnTimer);
       alienSpawnTimer = null;
     }
+    if (alienL2SpawnTimer != null) {
+      window.clearTimeout(alienL2SpawnTimer);
+      alienL2SpawnTimer = null;
+    }
   }
 
   function isHallwayScene(nextRoom = room) {
     return nextRoom?.kind === "hallway" || nextRoom?.kind === "start";
+  }
+
+  function hasLivingEnemy() {
+    return enemies.some((e) => !e.defeated);
   }
 
   function enemyBox(enemy, x = enemy.x, y = enemy.y) {
@@ -95,9 +129,8 @@ window.SpaceQuestAdventure = (() => {
     };
   }
 
-  function findAlienSpawnPoint() {
+  function findAlienSpawnPoint(template = window.SpaceQuestEnemies.LEVEL_ONE_ALIEN) {
     const catalog = window.SpaceQuestRooms;
-    const template = window.SpaceQuestEnemies.LEVEL_ONE_ALIEN;
     const pw = template.w;
     const ph = template.h;
     const candidates = [];
@@ -145,9 +178,21 @@ window.SpaceQuestAdventure = (() => {
   }
 
   function spawnLevelOneAlien() {
-    if (!running || !isHallwayScene() || enemies.some((e) => !e.defeated)) return;
-    const point = findAlienSpawnPoint();
+    if (!running || !isHallwayScene() || hasLivingEnemy()) return;
+    const template = window.SpaceQuestEnemies.LEVEL_ONE_ALIEN;
+    const point = findAlienSpawnPoint(template);
     const alien = window.SpaceQuestEnemies.createLevelOneAlien({
+      x: point.x,
+      y: point.y,
+    });
+    enemies = [alien];
+  }
+
+  function spawnLevelTwoAlien() {
+    if (!running || !isHallwayScene() || hasLivingEnemy()) return;
+    const template = window.SpaceQuestEnemies.LEVEL_TWO_ALIEN;
+    const point = findAlienSpawnPoint(template);
+    const alien = window.SpaceQuestEnemies.createLevelTwoAlien({
       x: point.x,
       y: point.y,
     });
@@ -165,6 +210,15 @@ window.SpaceQuestAdventure = (() => {
         spawnLevelOneAlien();
       }
     }, ALIEN_SPAWN_DELAY * 1000);
+
+    // Level 2: 1/5 chance, 2 seconds after entering a normal hallway
+    alienL2SpawnTimer = window.setTimeout(() => {
+      alienL2SpawnTimer = null;
+      if (!running || !isHallwayScene() || suppressAlienSpawn) return;
+      if (Math.random() < ALIEN_L2_SPAWN_CHANCE) {
+        spawnLevelTwoAlien();
+      }
+    }, ALIEN_L2_SPAWN_DELAY * 1000);
   }
 
   function tryMoveEnemy(enemy, dx, dy) {
@@ -366,10 +420,13 @@ window.SpaceQuestAdventure = (() => {
 
   function placeCorpseNearPlayer(enemyLike = {}) {
     const catalog = window.SpaceQuestRooms;
-    const template = window.SpaceQuestEnemies?.LEVEL_ONE_ALIEN || {};
+    const isL2 = enemyLike.type === "alien-l2";
+    const template = isL2
+      ? window.SpaceQuestEnemies?.LEVEL_TWO_ALIEN || {}
+      : window.SpaceQuestEnemies?.LEVEL_ONE_ALIEN || {};
     // Dedicated horizontal dead sprite — scale up for hallway readability
-    const drawW = 120;
-    const drawH = 66;
+    const drawW = isL2 ? 140 : 120;
+    const drawH = isL2 ? 76 : 66;
     const facing = player?.facing >= 0 ? 1 : -1;
     let x =
       facing >= 0
@@ -389,6 +446,7 @@ window.SpaceQuestAdventure = (() => {
         drawH,
         sprite:
           enemyLike.deadSprite ||
+          template.deadSprite ||
           "assets/sprites/alien-l1-dead.png",
         liveSprite:
           enemyLike.sprite || template.sprite || "assets/sprites/alien-l1.png",
@@ -1225,7 +1283,7 @@ window.SpaceQuestAdventure = (() => {
       );
       ctx.fill();
 
-      const img = enemyDeadImage || enemyImage;
+      const img = spriteImage(corpse.sprite, enemyDeadImage || enemyImage);
       if (!img) continue;
 
       ctx.save();
@@ -1254,7 +1312,8 @@ window.SpaceQuestAdventure = (() => {
         Math.PI * 2
       );
       ctx.fill();
-      ctx.drawImage(enemyImage, enemy.x, enemy.y + oy, enemy.w, enemy.h);
+      const img = spriteImage(enemy.sprite, enemyImage);
+      ctx.drawImage(img, enemy.x, enemy.y + oy, enemy.w, enemy.h);
     }
 
     drawPlayer();
