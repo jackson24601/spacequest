@@ -253,7 +253,7 @@ window.SpaceQuestCombat = (() => {
       await wait(650);
 
       if (playerUnit.hp <= 0) {
-        finish("lose");
+        await finish("lose");
         return;
       }
     }
@@ -264,7 +264,18 @@ window.SpaceQuestCombat = (() => {
     log(turnPrompt());
   }
 
-  function finish(result) {
+  async function playPlayerDeath() {
+    playerUnit.hp = 0;
+    renderUnits();
+    const unit = root?.querySelector('[data-unit-id="player"]');
+    if (unit) {
+      unit.classList.remove("is-down");
+      unit.classList.add("is-dying");
+    }
+    await wait(1450);
+  }
+
+  async function finish(result) {
     turn = "resolved";
     busy = true;
     setActionsEnabled(false);
@@ -276,17 +287,18 @@ window.SpaceQuestCombat = (() => {
       handlers.outcome = () => {
         if (typeof onWin === "function") onWin();
       };
-    } else {
-      const onLose = handlers.onLose;
-      window.SpaceQuestPlayerState.setHp(0);
-      resultTextEl.textContent = "You were defeated...";
-      log("You were defeated.");
-      handlers.outcome = () => {
-        if (typeof onLose === "function") onLose();
-      };
+      if (resultEl) resultEl.hidden = false;
+      return;
     }
 
-    if (resultEl) resultEl.hidden = false;
+    const onLose = handlers.onLose;
+    window.SpaceQuestPlayerState.setHp(0);
+    log("You collapse…");
+    if (resultEl) resultEl.hidden = true;
+    await playPlayerDeath();
+    close();
+    handlers = {};
+    if (typeof onLose === "function") onLose();
   }
 
   function open(nextEncounter, nextHandlers = {}) {

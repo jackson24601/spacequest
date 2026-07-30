@@ -16,8 +16,10 @@ window.SpaceQuestApp = (() => {
       el.hidden = name !== screenName;
       el.setAttribute("aria-hidden", name !== screenName ? "true" : "false");
     });
-    // Inventory stays available for the whole quest (not the title screen)
-    setInventoryChromeVisible(screenName !== "landing");
+    // Inventory stays available during the quest, not title / game over
+    setInventoryChromeVisible(
+      screenName !== "landing" && screenName !== "gameover"
+    );
   }
 
   function setInventoryChromeVisible(visible) {
@@ -245,11 +247,8 @@ window.SpaceQuestApp = (() => {
             });
           },
           onLose: () => {
-            window.SpaceQuestPlayerState.healFull();
-            startAdventure({
-              roomId: "start",
-            });
-            showGameMessage("You wake back in the Starting Scene.");
+            window.SpaceQuestAdventure.stop();
+            showGameOver();
           },
         });
       },
@@ -259,6 +258,23 @@ window.SpaceQuestApp = (() => {
         }
       },
     });
+  }
+
+  function showGameOver() {
+    show("gameover");
+    screens.gameover?.classList.remove("is-entering");
+    void screens.gameover?.offsetWidth;
+    screens.gameover?.classList.add("is-entering");
+  }
+
+  function returnToTitle() {
+    window.SpaceQuestDialog.hide();
+    window.SpaceQuestCombat.close();
+    window.SpaceQuestAdventure.stop();
+    window.SpaceQuestInventory.reset();
+    window.SpaceQuestPlayerState.reset();
+    renderInventoryPanel();
+    show("landing");
   }
 
   function showBackstory() {
@@ -287,6 +303,7 @@ window.SpaceQuestApp = (() => {
       backstory: document.getElementById("screen-backstory"),
       adventure: document.getElementById("screen-adventure"),
       combat: document.getElementById("screen-combat"),
+      gameover: document.getElementById("screen-gameover"),
     };
     adventureCanvas = document.getElementById("adventure-canvas");
 
@@ -316,6 +333,17 @@ window.SpaceQuestApp = (() => {
           btn.classList.remove("is-launching");
           startAdventure();
         }, 450);
+      });
+
+    document
+      .getElementById("return-title")
+      ?.addEventListener("click", (event) => {
+        const btn = event.currentTarget;
+        btn.classList.add("is-launching");
+        window.setTimeout(() => {
+          btn.classList.remove("is-launching");
+          returnToTitle();
+        }, 400);
       });
 
     show("landing");
