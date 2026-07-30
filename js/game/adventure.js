@@ -742,6 +742,56 @@ window.SpaceQuestAdventure = (() => {
         ctx.fillRect(prop.x + prop.w / 2 - 3, prop.y + 24, 6, 6);
         ctx.strokeStyle = "rgba(255,255,255,0.12)";
         ctx.strokeRect(prop.x + 0.5, prop.y + 6.5, prop.w - 1, prop.h - 7);
+      } else if (prop.type === "wounded-crewmate") {
+        // Shadow
+        ctx.fillStyle = "rgba(0,0,0,0.28)";
+        ctx.beginPath();
+        ctx.ellipse(
+          prop.x + prop.w / 2,
+          prop.y + prop.h - 2,
+          prop.w * 0.4,
+          6,
+          0,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+        // Blood stain under body
+        ctx.fillStyle = "rgba(140, 30, 40, 0.45)";
+        ctx.beginPath();
+        ctx.ellipse(
+          prop.x + prop.w * 0.45,
+          prop.y + prop.h - 6,
+          22,
+          8,
+          0,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+        // Body / suit (lying on side)
+        ctx.fillStyle = "#d8dde8";
+        ctx.fillRect(prop.x + 18, prop.y + 16, 52, 22);
+        ctx.fillStyle = "#9aa7bc";
+        ctx.fillRect(prop.x + 18, prop.y + 26, 52, 8);
+        // Legs
+        ctx.fillStyle = "#2c3a52";
+        ctx.fillRect(prop.x + 66, prop.y + 18, 14, 18);
+        // Head
+        ctx.fillStyle = "#f0c9a0";
+        ctx.fillRect(prop.x + 4, prop.y + 14, 16, 16);
+        ctx.fillStyle = "#e0b245";
+        ctx.fillRect(prop.x + 4, prop.y + 12, 16, 6);
+        // Closed eyes / pain
+        ctx.fillStyle = "#3a2a1c";
+        ctx.fillRect(prop.x + 7, prop.y + 20, 4, 2);
+        ctx.fillRect(prop.x + 13, prop.y + 20, 4, 2);
+        // Wound on torso
+        ctx.fillStyle = "#a8323a";
+        ctx.fillRect(prop.x + 34, prop.y + 20, 12, 8);
+        // Weak arm reaching
+        ctx.fillStyle = "#f0c9a0";
+        ctx.fillRect(prop.x + 28, prop.y + 34, 10, 8);
       } else if (prop.type === "shelf") {
         ctx.fillStyle = "#2c3a4f";
         ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
@@ -968,6 +1018,42 @@ window.SpaceQuestAdventure = (() => {
     ctx.restore();
   }
 
+  function isAutoTalkAvailable(prop) {
+    if (!prop?.autoTalk || !prop.id || !prop.dialogue) return false;
+    return !window.SpaceQuestInventory.hasTakenWorldPickup(prop.id);
+  }
+
+  function checkAutoTalk() {
+    if (!room || !player || interactionPaused) return;
+    const body = playerBox("body");
+    const reach = 56;
+    for (const prop of room.props || []) {
+      if (!isAutoTalkAvailable(prop)) continue;
+      const box = {
+        x: prop.x - reach,
+        y: prop.y - reach,
+        w: prop.w + reach * 2,
+        h: prop.h + reach * 2,
+      };
+      if (!aabb(body, box)) continue;
+
+      const inv = window.SpaceQuestInventory;
+      if (!inv.takeWorldPickup(prop.id)) return;
+      if (prop.givesItemId) inv.addItem(prop.givesItemId);
+      setPaused(true);
+      hideInteractPrompt();
+      if (typeof onInteract === "function") {
+        onInteract({
+          type: "dialogue",
+          id: prop.id,
+          message: prop.dialogue,
+          itemId: prop.givesItemId || null,
+        });
+      }
+      return;
+    }
+  }
+
   function isPickupAvailable(prop) {
     if (!prop?.itemId || !prop.id) return false;
     return !window.SpaceQuestInventory.hasTakenWorldPickup(prop.id);
@@ -975,6 +1061,7 @@ window.SpaceQuestAdventure = (() => {
 
   function isInteractable(prop) {
     if (!prop) return false;
+    if (prop.autoTalk) return false;
     if (isPickupAvailable(prop)) return true;
     if (prop.requiresKeyId && prop.id) return true;
     if (prop.interactLabel && prop.id && !prop.itemId) return true;
@@ -1149,6 +1236,7 @@ window.SpaceQuestAdventure = (() => {
       updatePlayerAnim(dt, dir.x);
       updateEnemies(dt);
       updateInteractPrompt();
+      checkAutoTalk();
 
       const transition = checkRoomTransition();
       if (transition) {

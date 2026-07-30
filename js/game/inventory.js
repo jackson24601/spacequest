@@ -11,6 +11,7 @@ window.SpaceQuestInventory = (() => {
 
   const ITEM_IDS = {
     COFFEE: "coffee",
+    BLASTER: "blaster",
     ...KEY_IDS,
   };
 
@@ -19,6 +20,11 @@ window.SpaceQuestInventory = (() => {
       id: ITEM_IDS.COFFEE,
       name: "Pot of Coffee",
       description: "Still hot. Can be thrown once in combat for heavy damage.",
+    },
+    [ITEM_IDS.BLASTER]: {
+      id: ITEM_IDS.BLASTER,
+      name: "Blaster",
+      description: "A crewmate's sidearm. Still charged.",
     },
     [KEY_IDS.ENGINE_ROOM]: {
       id: KEY_IDS.ENGINE_ROOM,
