@@ -182,7 +182,7 @@ window.SpaceQuestApp = (() => {
     renderInventoryPanel();
   }
 
-  async function offerAlienSearch() {
+  async function offerAlienSearch(defeatedEnemy = null) {
     const adventure = window.SpaceQuestAdventure;
     const inventory = window.SpaceQuestInventory;
     adventure.setPaused(true);
@@ -193,7 +193,20 @@ window.SpaceQuestApp = (() => {
     const choice = await window.SpaceQuestDialog.confirm("Search Alien?");
     if (choice === "yes") {
       adventure.markCorpseSearched();
-      if (inventory.rollKeyCardFind()) {
+      const isLevelTwo = defeatedEnemy?.type === "alien-l2";
+
+      if (isLevelTwo) {
+        if (inventory.rollLockerKeyFind()) {
+          inventory.addKey(inventory.KEY_IDS.LODGING_LOCKER);
+          await window.SpaceQuestDialog.notice(
+            "You have found a key to the Lodging foot locker!"
+          );
+          const room = adventure.getRoom();
+          if (room) updateAdventureHud(room);
+        } else {
+          showGameMessage("You find nothing useful.");
+        }
+      } else if (inventory.rollKeyCardFind()) {
         inventory.addKey(inventory.KEY_IDS.ENGINE_ROOM);
         await window.SpaceQuestDialog.notice(
           "You have found a key card to the Engine Room!"
@@ -273,6 +286,7 @@ window.SpaceQuestApp = (() => {
               defeatedEnemyId: encounter.enemy.id,
               placeCorpse: encounter.enemy,
               afterCombatLoot: true,
+              defeatedEnemy: encounter.enemy,
             });
           },
           onLose: () => {
@@ -283,7 +297,7 @@ window.SpaceQuestApp = (() => {
       },
       onSceneReady: () => {
         if (options.afterCombatLoot) {
-          offerAlienSearch();
+          offerAlienSearch(options.defeatedEnemy || options.placeCorpse);
         }
       },
     });

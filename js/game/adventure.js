@@ -8,7 +8,7 @@ window.SpaceQuestAdventure = (() => {
   const ALIEN_SPAWN_DELAY = 1;
   const ALIEN_SPAWN_CHANCE = 0.5;
   const ALIEN_L2_SPAWN_DELAY = 2;
-  const ALIEN_L2_SPAWN_CHANCE = 1 / 5;
+  const ALIEN_L2_SPAWN_CHANCE = 2 / 3;
 
   let canvas;
   let ctx;
@@ -211,7 +211,7 @@ window.SpaceQuestAdventure = (() => {
       }
     }, ALIEN_SPAWN_DELAY * 1000);
 
-    // Level 2: 1/5 chance, 2 seconds after entering a normal hallway
+    // Level 2: 2/3 chance, 2 seconds after entering a normal hallway
     alienL2SpawnTimer = window.setTimeout(() => {
       alienL2SpawnTimer = null;
       if (!running || !isHallwayScene() || suppressAlienSpawn) return;

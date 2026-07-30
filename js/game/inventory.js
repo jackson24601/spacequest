@@ -62,6 +62,7 @@ window.SpaceQuestInventory = (() => {
   };
 
   const KEY_CARD_FIND_CHANCE = 1 / 5;
+  const LOCKER_KEY_FIND_CHANCE = 1 / 4;
 
   const items = new Set();
   const takenWorldPickups = new Set();
@@ -154,6 +155,10 @@ window.SpaceQuestInventory = (() => {
     return Math.random() < KEY_CARD_FIND_CHANCE;
   }
 
+  function rollLockerKeyFind() {
+    return Math.random() < LOCKER_KEY_FIND_CHANCE;
+  }
+
   function canUsePlasmaRiffle() {
     return hasItem(ITEM_IDS.PLASMA_RIFFLE) && hasItem(ITEM_IDS.PLASMA_CARTRIDGE);
   }
@@ -163,6 +168,7 @@ window.SpaceQuestInventory = (() => {
     ITEM_IDS,
     ITEM_DEFS,
     KEY_CARD_FIND_CHANCE,
+    LOCKER_KEY_FIND_CHANCE,
     hasKey,
     hasItem,
     addKey,
@@ -176,6 +182,7 @@ window.SpaceQuestInventory = (() => {
     takeWorldPickup,
     reset,
     rollKeyCardFind,
+    rollLockerKeyFind,
     canUsePlasmaRiffle,
     onChange,
   };
