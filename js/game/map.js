@@ -449,11 +449,12 @@ window.SpaceQuestMap = (() => {
           type: "wounded-crewmate",
           id: "engine-room-crewmate",
           autoTalk: true,
+          talkReach: 30,
           givesItemId: "blaster",
           dialogue:
             "Oh, there is someone still alive. I thought everyone was dead. Here, take my blaster. And get out of here. There is an escape pod in mission control. You've got to get there.",
-          x: 340,
-          y: 235,
+          x: 500,
+          y: 245,
           w: 84,
           h: 52,
         }

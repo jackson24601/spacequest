@@ -215,6 +215,10 @@ window.SpaceQuestApp = (() => {
     if (info.itemId === window.SpaceQuestInventory.ITEM_IDS.BLASTER) {
       showGameMessage("Blaster added to inventory.");
     }
+    if (info.fadeAfter && info.id) {
+      // Keep drawing while they fade; takenWorldPickup keeps them gone on re-entry
+      adventure.beginPropFade(info.id, 2.6);
+    }
     adventure.setPaused(false);
   }
 
