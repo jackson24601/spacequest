@@ -403,7 +403,19 @@ window.SpaceQuestMap = (() => {
         { type: "crate", x: 300, y: 180, w: 90, h: 70 },
         { type: "crate", x: 570, y: 180, w: 90, h: 70 },
         { type: "crate", x: 300, y: 320, w: 90, h: 70 },
-        { type: "crate", x: 570, y: 320, w: 90, h: 70 }
+        { type: "crate", x: 570, y: 320, w: 90, h: 70 },
+        {
+          type: "plasma-riffle",
+          id: "supply-plasma-riffle",
+          itemId: "plasma-riffle",
+          pickupLabel: "Pick Up Plasma Riffle",
+          pickupMessage:
+            "You pick up the Plasma Riffle, but note that it lacks an ammuniiton cartridge. You will need to find that to use it.",
+          x: 445,
+          y: 118,
+          w: 70,
+          h: 28,
+        }
       );
       solids.push(
         { x: 100, y: 130, w: 70, h: 300 },

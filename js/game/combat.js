@@ -19,6 +19,7 @@ window.SpaceQuestCombat = (() => {
   let resultTextEl;
   let continueBtn;
   let throwCoffeeBtn;
+  let firePlasmaBtn;
 
   let encounter = null;
   let handlers = {};
@@ -38,6 +39,7 @@ window.SpaceQuestCombat = (() => {
     resultTextEl = root.querySelector("[data-combat-result-text]");
     continueBtn = root.querySelector("[data-combat-continue]");
     throwCoffeeBtn = root.querySelector('[data-action="throw-coffee"]');
+    firePlasmaBtn = root.querySelector('[data-action="fire-plasma-riffle"]');
 
     actionsEl?.addEventListener("click", (event) => {
       const btn = event.target.closest("[data-action]");
@@ -47,6 +49,9 @@ window.SpaceQuestCombat = (() => {
         playerAttack(action);
       } else if (action === "throw-coffee") {
         throwCoffee();
+      } else if (action === "fire-plasma-riffle") {
+        // Gated in syncItemActions — only usable with a cartridge
+        firePlasmaRiffle();
       }
     });
 

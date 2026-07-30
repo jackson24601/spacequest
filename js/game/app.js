@@ -218,6 +218,13 @@ window.SpaceQuestApp = (() => {
     adventure.setPaused(false);
   }
 
+  async function handlePickupNotice(info) {
+    const adventure = window.SpaceQuestAdventure;
+    adventure.setPaused(true);
+    await window.SpaceQuestDialog.notice(info.message);
+    adventure.setPaused(false);
+  }
+
   async function startAdventure(options = {}) {
     show("adventure");
     await window.SpaceQuestAdventure.start({
@@ -233,6 +240,10 @@ window.SpaceQuestApp = (() => {
         );
       },
       onPickup: (info) => {
+        if (info?.message) {
+          handlePickupNotice(info);
+          return;
+        }
         if (info?.itemId === window.SpaceQuestInventory.ITEM_IDS.COFFEE) {
           showGameMessage("Picked up a pot of coffee.");
         } else {
