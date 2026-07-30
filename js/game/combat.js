@@ -9,6 +9,8 @@ window.SpaceQuestCombat = (() => {
   const ENEMY_DEFAULT_HIT_CHANCE = 0.25;
   const UNARMED_DAMAGE = 1;
   const COFFEE_DAMAGE = 10;
+  const BLASTER_HIT_CHANCE = 4 / 5;
+  const BLASTER_DAMAGE = 3;
 
   let root;
   let playerSide;
@@ -19,6 +21,7 @@ window.SpaceQuestCombat = (() => {
   let resultTextEl;
   let continueBtn;
   let throwCoffeeBtn;
+  let fireBlasterBtn;
   let firePlasmaBtn;
 
   let encounter = null;
@@ -39,6 +42,7 @@ window.SpaceQuestCombat = (() => {
     resultTextEl = root.querySelector("[data-combat-result-text]");
     continueBtn = root.querySelector("[data-combat-continue]");
     throwCoffeeBtn = root.querySelector('[data-action="throw-coffee"]');
+    fireBlasterBtn = root.querySelector('[data-action="fire-blaster"]');
     firePlasmaBtn = root.querySelector('[data-action="fire-plasma-riffle"]');
 
     actionsEl?.addEventListener("click", (event) => {
@@ -49,6 +53,8 @@ window.SpaceQuestCombat = (() => {
         playerAttack(action);
       } else if (action === "throw-coffee") {
         throwCoffee();
+      } else if (action === "fire-blaster") {
+        fireBlaster();
       } else if (action === "fire-plasma-riffle") {
         // Gated in syncItemActions — only usable with a cartridge
         firePlasmaRiffle();
