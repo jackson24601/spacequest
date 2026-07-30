@@ -184,12 +184,14 @@ window.SpaceQuestMap = (() => {
         { x: 740, y: 0, w: 220, h: HEIGHT }
       );
       props.push(
-        { type: "panel", x: 246, y: 90, w: 64, h: 96 },
-        { type: "panel", x: 650, y: 90, w: 64, h: 96 },
-        { type: "panel", x: 246, y: 340, w: 64, h: 96 },
-        { type: "panel", x: 650, y: 340, w: 64, h: 96 },
-        { type: "stripe", x: 220, y: 160, w: 10, h: 220 },
-        { type: "stripe", x: 730, y: 160, w: 10, h: 220 }
+        { type: "panel", x: 246, y: 90, w: 78, h: 100 },
+        { type: "panel", x: 636, y: 90, w: 78, h: 100 },
+        { type: "panel", x: 246, y: 340, w: 78, h: 100 },
+        { type: "panel", x: 636, y: 340, w: 78, h: 100 },
+        { type: "vent", x: 232, y: 200, w: 40, h: 56 },
+        { type: "vent", x: 688, y: 200, w: 40, h: 56 },
+        { type: "vent", x: 232, y: 290, w: 40, h: 40 },
+        { type: "vent", x: 688, y: 290, w: 40, h: 40 }
       );
     } else if (axes === "horizontal") {
       solids.push(
@@ -197,12 +199,14 @@ window.SpaceQuestMap = (() => {
         { x: 0, y: 390, w: WIDTH, h: 150 }
       );
       props.push(
-        { type: "panel", x: 90, y: 168, w: 64, h: 96 },
-        { type: "panel", x: 806, y: 168, w: 64, h: 96 },
-        { type: "panel", x: 280, y: 168, w: 54, h: 80 },
-        { type: "panel", x: 626, y: 168, w: 54, h: 80 },
-        { type: "stripe", x: 0, y: 318, w: WIDTH, h: 10 },
-        { type: "stripe", x: 0, y: 212, w: WIDTH, h: 8 }
+        { type: "panel", x: 80, y: 162, w: 86, h: 100 },
+        { type: "panel", x: 794, y: 162, w: 86, h: 100 },
+        { type: "panel", x: 270, y: 168, w: 78, h: 92 },
+        { type: "panel", x: 612, y: 168, w: 78, h: 92 },
+        { type: "vent", x: 180, y: 175, w: 48, h: 36 },
+        { type: "vent", x: 732, y: 175, w: 48, h: 36 },
+        { type: "vent", x: 400, y: 178, w: 56, h: 32 },
+        { type: "droid", x: 520, y: 152, w: 36, h: 36 }
       );
     } else {
       // Plus-shaped corridor with door gaps on connected sides
@@ -246,10 +250,12 @@ window.SpaceQuestMap = (() => {
       }
 
       props.push(
-        { type: "panel", x: 210, y: 150, w: 54, h: 80 },
-        { type: "panel", x: 696, y: 150, w: 54, h: 80 },
-        { type: "stripe", x: 0, y: 250, w: WIDTH, h: 8 },
-        { type: "stripe", x: 476, y: 0, w: 8, h: HEIGHT }
+        { type: "panel", x: 200, y: 145, w: 78, h: 92 },
+        { type: "panel", x: 682, y: 145, w: 78, h: 92 },
+        { type: "vent", x: 300, y: 155, w: 48, h: 32 },
+        { type: "vent", x: 612, y: 155, w: 48, h: 32 },
+        { type: "vent", x: 220, y: 300, w: 36, h: 48 },
+        { type: "vent", x: 704, y: 300, w: 36, h: 48 }
       );
     }
 

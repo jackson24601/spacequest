@@ -617,46 +617,50 @@ window.SpaceQuestAdventure = (() => {
   }
 
   function drawPaneledWall(x, y, w, h, palette) {
-    const panelW = 48;
-    const panelH = 40;
+    const panelW = 72;
+    const panelH = 56;
     ctx.fillStyle = palette.wallDark || "#3a6a98";
     ctx.fillRect(x, y, w, h);
     for (let py = y; py < y + h; py += panelH) {
       for (let px = x; px < x + w; px += panelW) {
-        const pw = Math.min(panelW - 2, x + w - px - 1);
-        const ph = Math.min(panelH - 2, y + h - py - 1);
-        if (pw <= 2 || ph <= 2) continue;
-        const even = ((px - x) / panelW + (py - y) / panelH) % 2 < 1;
-        ctx.fillStyle = even
-          ? palette.panel || palette.wall
-          : palette.wall || "#7eb0d8";
-        ctx.fillRect(px + 1, py + 1, pw, ph);
-        ctx.fillStyle = palette.wallMid || "#5a92c0";
-        ctx.fillRect(px + 1, py + ph - 3, pw, 3);
-        ctx.fillStyle = "rgba(255,255,255,0.18)";
-        ctx.fillRect(px + 2, py + 2, Math.max(1, pw - 4), 2);
+        const pw = Math.min(panelW - 3, x + w - px - 1);
+        const ph = Math.min(panelH - 3, y + h - py - 1);
+        if (pw <= 3 || ph <= 3) continue;
+        // Large angular panels — slight shade variation, not a noisy checker
+        const col = ((px - x) / panelW) % 2 < 1 ? 0 : 1;
+        ctx.fillStyle =
+          col === 0
+            ? palette.panel || "#8ec4e8"
+            : palette.wall || "#7eb0d8";
+        ctx.fillRect(px + 2, py + 2, pw, ph);
+        // Bevel
+        ctx.fillStyle = "rgba(255,255,255,0.22)";
+        ctx.fillRect(px + 2, py + 2, pw, 3);
+        ctx.fillRect(px + 2, py + 2, 3, ph);
+        ctx.fillStyle = "rgba(20, 40, 70, 0.35)";
+        ctx.fillRect(px + 2, py + ph - 1, pw, 3);
+        ctx.fillRect(px + pw - 1, py + 2, 3, ph);
         ctx.strokeStyle = palette.panelEdge || "#2a4060";
-        ctx.lineWidth = 1;
-        ctx.strokeRect(px + 1.5, py + 1.5, pw - 1, ph - 1);
+        ctx.lineWidth = 2;
+        ctx.strokeRect(px + 2, py + 2, pw, ph);
       }
     }
   }
 
   function drawPaneledFloor(x, y, w, h, palette) {
-    const tile = 36;
-    ctx.fillStyle = palette.floorDark || "#7a86a8";
+    const tile = 40;
+    ctx.fillStyle = palette.floor || "#9aa6c8";
     ctx.fillRect(x, y, w, h);
     for (let py = y; py < y + h; py += tile) {
       for (let px = x; px < x + w; px += tile) {
-        const tw = Math.min(tile - 1, x + w - px);
-        const th = Math.min(tile - 1, y + h - py);
+        const tw = Math.min(tile, x + w - px);
+        const th = Math.min(tile, y + h - py);
         if (tw <= 1 || th <= 1) continue;
-        const even = ((px + py) / tile) % 2 < 1;
-        ctx.fillStyle = even
-          ? palette.floorLight || "#b8c2de"
-          : palette.floor || "#9aa6c8";
-        ctx.fillRect(px, py, tw, th);
-        ctx.strokeStyle = "rgba(42, 64, 96, 0.35)";
+        // Soft recessed tiles (mostly uniform lavender-blue)
+        ctx.fillStyle = palette.floorLight || "#b8c2de";
+        ctx.fillRect(px + 1, py + 1, Math.max(1, tw - 3), Math.max(1, th - 3));
+        ctx.strokeStyle = "rgba(42, 64, 96, 0.28)";
+        ctx.lineWidth = 1;
         ctx.strokeRect(px + 0.5, py + 0.5, tw - 1, th - 1);
       }
     }
@@ -672,6 +676,7 @@ window.SpaceQuestAdventure = (() => {
   }
 
   function drawHazardStripes(x, y, w, h, vertical = false) {
+    // Bold yellow/black zig-zag chevrons (classic SQ elevator / airlock)
     const yel = "#f0d030";
     const blk = "#1a1a24";
     ctx.fillStyle = blk;
@@ -680,14 +685,14 @@ window.SpaceQuestAdventure = (() => {
     ctx.beginPath();
     ctx.rect(x, y, w, h);
     ctx.clip();
-    const step = 14;
+    const step = 16;
     ctx.fillStyle = yel;
     if (vertical) {
       for (let i = -h; i < w + h; i += step) {
         ctx.beginPath();
         ctx.moveTo(x + i, y);
-        ctx.lineTo(x + i + step * 0.55, y);
-        ctx.lineTo(x + i + step * 0.55 - h, y + h);
+        ctx.lineTo(x + i + step * 0.5, y);
+        ctx.lineTo(x + i + step * 0.5 - h, y + h);
         ctx.lineTo(x + i - h, y + h);
         ctx.closePath();
         ctx.fill();
@@ -696,14 +701,18 @@ window.SpaceQuestAdventure = (() => {
       for (let i = -w; i < w + h; i += step) {
         ctx.beginPath();
         ctx.moveTo(x, y + i);
-        ctx.lineTo(x + w, y + i - w * 0.35);
-        ctx.lineTo(x + w, y + i - w * 0.35 + step * 0.55);
-        ctx.lineTo(x, y + i + step * 0.55);
+        ctx.lineTo(x + w, y + i - w * 0.45);
+        ctx.lineTo(x + w, y + i - w * 0.45 + step * 0.5);
+        ctx.lineTo(x, y + i + step * 0.5);
         ctx.closePath();
         ctx.fill();
       }
     }
     ctx.restore();
+    // Thin cyan / metal frame edge for door-like reads
+    ctx.strokeStyle = "rgba(62, 224, 232, 0.35)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
   }
 
   function drawRoomBackdrop() {
@@ -784,27 +793,102 @@ window.SpaceQuestAdventure = (() => {
 
     for (const prop of room.props) {
       if (prop.type === "panel") {
+        // Classic SQ wall terminal with RED ALERT plaque
         ctx.fillStyle = palette.wallDeep || "#2a4a70";
         ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
+        ctx.fillStyle = "#c8d4e8";
+        ctx.fillRect(prop.x + 3, prop.y + 3, prop.w - 6, 4);
         ctx.fillStyle = "#0a1020";
-        ctx.fillRect(prop.x + 6, prop.y + 8, prop.w - 12, 22);
-        ctx.fillStyle = `rgba(224, 48, 64, ${0.55 + pulse * 0.4})`;
-        ctx.font = "800 11px Outfit, sans-serif";
-        ctx.fillText("ALERT", prop.x + 12, prop.y + 23);
+        ctx.fillRect(prop.x + 5, prop.y + 10, prop.w - 10, 28);
+        // Hourglass warning icons flanking text
+        const iconY = prop.y + 16;
+        const drawHourglass = (ix) => {
+          ctx.fillStyle = `rgba(224, 48, 64, ${0.7 + pulse * 0.3})`;
+          ctx.beginPath();
+          ctx.moveTo(ix, iconY);
+          ctx.lineTo(ix + 8, iconY);
+          ctx.lineTo(ix + 4, iconY + 7);
+          ctx.closePath();
+          ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(ix + 4, iconY + 7);
+          ctx.lineTo(ix, iconY + 14);
+          ctx.lineTo(ix + 8, iconY + 14);
+          ctx.closePath();
+          ctx.fill();
+        };
+        drawHourglass(prop.x + 8);
+        drawHourglass(prop.x + prop.w - 16);
+        ctx.fillStyle = `rgba(224, 48, 64, ${0.65 + pulse * 0.35})`;
+        ctx.font = "800 10px Outfit, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("RED ALERT", prop.x + prop.w / 2, prop.y + 28);
+        ctx.textAlign = "left";
         ctx.fillStyle = palette.accent;
-        ctx.fillRect(prop.x + 8, prop.y + 36, prop.w - 16, 6);
+        ctx.fillRect(prop.x + 8, prop.y + 44, prop.w - 16, 5);
         ctx.fillStyle = palette.accentWarm;
-        ctx.fillRect(prop.x + 8, prop.y + 48, prop.w - 16, 6);
+        ctx.fillRect(prop.x + 8, prop.y + 54, prop.w - 16, 5);
         ctx.fillStyle = palette.metal;
         ctx.fillRect(
           prop.x + 8,
-          prop.y + 60,
+          prop.y + 64,
           prop.w - 16,
-          Math.max(12, prop.h - 72)
+          Math.max(10, prop.h - 74)
         );
         ctx.strokeStyle = palette.panelEdge || "#2a4060";
         ctx.lineWidth = 2;
         ctx.strokeRect(prop.x + 1, prop.y + 1, prop.w - 2, prop.h - 2);
+      } else if (prop.type === "vent") {
+        // Recessed bulkhead vent — used-future ship detail
+        ctx.fillStyle = palette.wallDark || "#3a6a98";
+        ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
+        ctx.fillStyle = "#1a2438";
+        ctx.fillRect(prop.x + 3, prop.y + 3, prop.w - 6, prop.h - 6);
+        const slats = Math.max(3, Math.floor(prop.h / 8));
+        for (let i = 0; i < slats; i += 1) {
+          ctx.fillStyle = i % 2 === 0 ? "#6a88a8" : "#4a6888";
+          ctx.fillRect(
+            prop.x + 5,
+            prop.y + 5 + i * ((prop.h - 10) / slats),
+            prop.w - 10,
+            Math.max(2, (prop.h - 10) / slats - 1)
+          );
+        }
+        ctx.strokeStyle = palette.panelEdge || "#2a4060";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(prop.x + 1, prop.y + 1, prop.w - 2, prop.h - 2);
+      } else if (prop.type === "droid") {
+        // Small hovering maintenance droid (SQ-style NPC garnish)
+        const bob = Math.round(Math.sin(alarmPhase * 1.4 + prop.x) * 3);
+        const dx = prop.x;
+        const dy = prop.y + bob;
+        ctx.fillStyle = "rgba(26, 36, 56, 0.4)";
+        ctx.fillRect(dx + 6, prop.y + prop.h - 4, prop.w - 12, 5);
+        ctx.fillStyle = "#9aa8bc";
+        ctx.fillRect(dx + 8, dy + 18, prop.w - 16, 10);
+        ctx.fillStyle = "#6a788c";
+        ctx.fillRect(dx + 10, dy + 8, prop.w - 20, 12);
+        ctx.fillStyle = "#c8d4e8";
+        ctx.fillRect(dx + prop.w / 2 - 6, dy + 2, 12, 10);
+        ctx.fillStyle = "#1a2438";
+        ctx.beginPath();
+        ctx.arc(dx + prop.w / 2, dy + 7, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = `rgba(62, 224, 232, ${0.55 + pulse * 0.4})`;
+        ctx.beginPath();
+        ctx.arc(dx + prop.w / 2, dy + 7, 2, 0, Math.PI * 2);
+        ctx.fill();
+        // Spindly arms
+        ctx.strokeStyle = "#5a687c";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(dx + 10, dy + 14);
+        ctx.lineTo(dx + 2, dy + 22);
+        ctx.lineTo(dx + 6, dy + 28);
+        ctx.moveTo(dx + prop.w - 10, dy + 14);
+        ctx.lineTo(dx + prop.w - 2, dy + 22);
+        ctx.lineTo(dx + prop.w - 6, dy + 28);
+        ctx.stroke();
       } else if (prop.type === "stripe") {
         drawHazardStripes(prop.x, prop.y, prop.w, prop.h, prop.h > prop.w);
       } else if (prop.type === "light") {
@@ -1006,17 +1090,21 @@ window.SpaceQuestAdventure = (() => {
         ctx.strokeStyle = "rgba(255,255,255,0.12)";
         ctx.strokeRect(prop.x + 0.5, prop.y + 6.5, prop.w - 1, prop.h - 7);
       } else if (prop.type === "med-bed") {
-        ctx.fillStyle = "#1a2e3a";
-        ctx.fillRect(prop.x, prop.y + 18, prop.w, prop.h - 18);
-        ctx.fillStyle = "#d7eef5";
-        ctx.fillRect(prop.x + 8, prop.y + 10, prop.w - 16, prop.h - 28);
-        ctx.fillStyle = "#8fd6ff";
-        ctx.fillRect(prop.x + 12, prop.y + 14, 46, 28);
-        ctx.fillStyle = "#2a4a5a";
-        ctx.fillRect(prop.x + 6, prop.y + prop.h - 14, 16, 14);
-        ctx.fillRect(prop.x + prop.w - 22, prop.y + prop.h - 14, 16, 14);
-        ctx.strokeStyle = "rgba(94, 224, 216, 0.45)";
-        ctx.strokeRect(prop.x + 8.5, prop.y + 10.5, prop.w - 17, prop.h - 29);
+        // Clinical biobed — flat pixel blocks, cyan frame
+        ctx.fillStyle = "#2a4a70";
+        ctx.fillRect(prop.x, prop.y + 16, prop.w, prop.h - 16);
+        ctx.fillStyle = "#c8e8f0";
+        ctx.fillRect(prop.x + 6, prop.y + 8, prop.w - 12, prop.h - 26);
+        ctx.fillStyle = "#e8f8fc";
+        ctx.fillRect(prop.x + 10, prop.y + 12, prop.w - 20, 10);
+        ctx.fillStyle = "#3ee0e8";
+        ctx.fillRect(prop.x + 6, prop.y + 8, prop.w - 12, 3);
+        ctx.fillStyle = "#1a2438";
+        ctx.fillRect(prop.x + 4, prop.y + prop.h - 12, 14, 12);
+        ctx.fillRect(prop.x + prop.w - 18, prop.y + prop.h - 12, 14, 12);
+        ctx.strokeStyle = "#2a4060";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(prop.x + 6, prop.y + 8, prop.w - 12, prop.h - 26);
       } else if (prop.type === "med-monitor") {
         ctx.fillStyle = "#142430";
         ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
@@ -1170,35 +1258,38 @@ window.SpaceQuestAdventure = (() => {
       } else if (prop.type === "dead-astronaut") {
         const facing = prop.facing >= 0 ? 1 : -1;
         const cx = prop.x + prop.w / 2;
-        // Pixel blood pool
-        ctx.fillStyle = "#6a1424";
-        ctx.fillRect(prop.x + 4, prop.y + prop.h - 12, prop.w - 8, 10);
-        ctx.fillStyle = "#a02038";
-        ctx.fillRect(prop.x + 10, prop.y + prop.h - 10, prop.w - 18, 6);
-        ctx.fillStyle = "#c03048";
-        ctx.fillRect(prop.x + 14, prop.y + prop.h - 14, 16, 4);
+        // Pixel blood pool near head (reference-style stain)
+        ctx.fillStyle = "#5a1020";
+        ctx.fillRect(prop.x + 2, prop.y + prop.h - 14, 22, 12);
+        ctx.fillStyle = "#8a1830";
+        ctx.fillRect(prop.x + 4, prop.y + prop.h - 12, 16, 8);
+        ctx.fillStyle = "#c02840";
+        ctx.fillRect(prop.x + 8, prop.y + prop.h - 16, 10, 5);
         ctx.save();
         if (facing < 0) {
           ctx.translate(cx, prop.y + prop.h / 2);
           ctx.scale(-1, 1);
           ctx.translate(-cx, -(prop.y + prop.h / 2));
         }
-        // White suit body with blue/red accents (classic SQ corpse)
+        // Prone white suit, blue stripe, pink sleeve accent
         ctx.fillStyle = "#e8eef8";
-        ctx.fillRect(prop.x + 14, prop.y + 12, prop.w - 26, 16);
+        ctx.fillRect(prop.x + 16, prop.y + 14, prop.w - 28, 14);
         ctx.fillStyle = "#3a6ab0";
-        ctx.fillRect(prop.x + 14, prop.y + 20, prop.w - 26, 6);
+        ctx.fillRect(prop.x + 16, prop.y + 22, prop.w - 28, 5);
         ctx.fillStyle = "#e03060";
-        ctx.fillRect(prop.x + 18, prop.y + 12, 8, 16);
+        ctx.fillRect(prop.x + 20, prop.y + 12, 10, 18);
+        ctx.fillStyle = "#c8d0e0";
+        ctx.fillRect(prop.x + prop.w - 22, prop.y + 16, 14, 6);
         ctx.fillStyle = "#1a2438";
-        ctx.fillRect(prop.x + prop.w - 16, prop.y + 14, 10, 14);
+        ctx.fillRect(prop.x + prop.w - 18, prop.y + 20, 12, 10);
+        // Head + blonde hair
         ctx.fillStyle = "#f0c8a0";
-        ctx.fillRect(prop.x + 4, prop.y + 12, 12, 12);
+        ctx.fillRect(prop.x + 4, prop.y + 12, 14, 12);
         ctx.fillStyle = "#f0d050";
-        ctx.fillRect(prop.x + 4, prop.y + 8, 12, 6);
+        ctx.fillRect(prop.x + 4, prop.y + 8, 14, 6);
         ctx.fillStyle = "#1a2438";
-        ctx.fillRect(prop.x + 6, prop.y + 14, 3, 3);
-        ctx.fillRect(prop.x + 11, prop.y + 14, 3, 3);
+        ctx.fillRect(prop.x + 7, prop.y + 15, 3, 3);
+        ctx.fillRect(prop.x + 12, prop.y + 15, 3, 3);
         ctx.restore();
       } else if (prop.type === "wounded-crewmate") {
         const taken = window.SpaceQuestInventory.hasTakenWorldPickup(prop.id);
@@ -1736,7 +1827,8 @@ window.SpaceQuestAdventure = (() => {
 
     if (transitionLock > 0) transitionLock -= dt;
     if (lockedDoorCooldown > 0) lockedDoorCooldown -= dt;
-    if (room.alarm) alarmPhase += dt * 3.2;
+    // Shared pulse for alarms, RED ALERT panels, and hovering droids
+    alarmPhase += dt * 3.2;
     updatePropFades(dt);
 
     if (!interactionPaused) {
