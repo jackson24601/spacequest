@@ -9,6 +9,7 @@ window.SpaceQuestAdventure = (() => {
   const ALIEN_SPAWN_CHANCE = 0.5;
   const ALIEN_L2_SPAWN_DELAY = 2;
   const ALIEN_L2_SPAWN_CHANCE = 2 / 3;
+  const INFIRMARY_AMBUSH_ID = "infirmary-ambush";
 
   let canvas;
   let ctx;
@@ -221,6 +222,41 @@ window.SpaceQuestAdventure = (() => {
     }, ALIEN_L2_SPAWN_DELAY * 1000);
   }
 
+  function spawnInfirmaryAmbush() {
+    if (room?.specialType !== "infirmary") return;
+    if (window.SpaceQuestInventory.hasTakenWorldPickup(INFIRMARY_AMBUSH_ID)) {
+      return;
+    }
+
+    const catalog = window.SpaceQuestRooms;
+    // Open center / far end so they can all path toward the door entry
+    const slots = [
+      { x: 360, y: 400, level: 1, order: 1 },
+      { x: 520, y: 400, level: 1, order: 2 },
+      { x: 440, y: 350, level: 1, order: 3 },
+      { x: 340, y: 280, level: 2, order: 4 },
+      { x: 540, y: 280, level: 2, order: 5 },
+    ];
+
+    enemies = slots.map((slot) => {
+      const create =
+        slot.level === 2
+          ? window.SpaceQuestEnemies.createLevelTwoAlien
+          : window.SpaceQuestEnemies.createLevelOneAlien;
+      const template =
+        slot.level === 2
+          ? window.SpaceQuestEnemies.LEVEL_TWO_ALIEN
+          : window.SpaceQuestEnemies.LEVEL_ONE_ALIEN;
+      return create({
+        id: `infirmary-alien-${slot.order}`,
+        name: `Alien ${slot.order}`,
+        combatOrder: slot.order,
+        x: Math.max(16, Math.min(catalog.WIDTH - template.w - 16, slot.x)),
+        y: Math.max(80, Math.min(catalog.HEIGHT - template.h - 80, slot.y)),
+      });
+    });
+  }
+
   function tryMoveEnemy(enemy, dx, dy) {
     if (dx !== 0) {
       const next = enemyBox(enemy, enemy.x + dx, enemy.y);
@@ -333,6 +369,15 @@ window.SpaceQuestAdventure = (() => {
 
     if (!suppressAlienSpawn) {
       scheduleHallwayAlienSpawn();
+    }
+    // Infirmary ambush is room-scripted (not a hallway roll). Still honor
+    // post-combat suppress so aliens don't pop back in the same return.
+    if (
+      room.specialType === "infirmary" &&
+      !suppressAlienSpawn &&
+      !window.SpaceQuestInventory.hasTakenWorldPickup(INFIRMARY_AMBUSH_ID)
+    ) {
+      spawnInfirmaryAmbush();
     }
     suppressAlienSpawn = false;
   }
@@ -825,6 +870,101 @@ window.SpaceQuestAdventure = (() => {
         ctx.fillRect(prop.x + prop.w / 2 - 3, prop.y + 24, 6, 6);
         ctx.strokeStyle = "rgba(255,255,255,0.12)";
         ctx.strokeRect(prop.x + 0.5, prop.y + 6.5, prop.w - 1, prop.h - 7);
+      } else if (prop.type === "med-bed") {
+        ctx.fillStyle = "#1a2e3a";
+        ctx.fillRect(prop.x, prop.y + 18, prop.w, prop.h - 18);
+        ctx.fillStyle = "#d7eef5";
+        ctx.fillRect(prop.x + 8, prop.y + 10, prop.w - 16, prop.h - 28);
+        ctx.fillStyle = "#8fd6ff";
+        ctx.fillRect(prop.x + 12, prop.y + 14, 46, 28);
+        ctx.fillStyle = "#2a4a5a";
+        ctx.fillRect(prop.x + 6, prop.y + prop.h - 14, 16, 14);
+        ctx.fillRect(prop.x + prop.w - 22, prop.y + prop.h - 14, 16, 14);
+        ctx.strokeStyle = "rgba(94, 224, 216, 0.45)";
+        ctx.strokeRect(prop.x + 8.5, prop.y + 10.5, prop.w - 17, prop.h - 29);
+      } else if (prop.type === "med-monitor") {
+        ctx.fillStyle = "#142430";
+        ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
+        ctx.fillStyle = "#0a1820";
+        ctx.fillRect(prop.x + 4, prop.y + 4, prop.w - 8, prop.h - 12);
+        ctx.strokeStyle = "#5ee0d8";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(prop.x + 8, prop.y + prop.h / 2);
+        ctx.quadraticCurveTo(
+          prop.x + prop.w * 0.35,
+          prop.y + 6,
+          prop.x + prop.w * 0.5,
+          prop.y + prop.h / 2
+        );
+        ctx.quadraticCurveTo(
+          prop.x + prop.w * 0.7,
+          prop.y + prop.h - 8,
+          prop.x + prop.w - 8,
+          prop.y + prop.h / 2
+        );
+        ctx.stroke();
+        ctx.fillStyle = "#3a5160";
+        ctx.fillRect(prop.x + prop.w / 2 - 4, prop.y + prop.h - 8, 8, 8);
+      } else if (prop.type === "iv-stand") {
+        ctx.fillStyle = "#9eb6c4";
+        ctx.fillRect(prop.x + prop.w / 2 - 2, prop.y, 4, prop.h);
+        ctx.fillStyle = "#c5dbe6";
+        ctx.fillRect(prop.x - 4, prop.y, prop.w + 8, 6);
+        ctx.fillStyle = "#5ee0d8";
+        ctx.fillRect(prop.x + prop.w / 2 - 6, prop.y + 14, 12, 18);
+        ctx.fillStyle = "#8fd6ff";
+        ctx.fillRect(prop.x + prop.w / 2 - 4, prop.y + 16, 8, 12);
+      } else if (prop.type === "med-cabinet") {
+        ctx.fillStyle = "#244556";
+        ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
+        ctx.fillStyle = "#316072";
+        ctx.fillRect(prop.x + 4, prop.y + 4, prop.w - 8, prop.h - 8);
+        ctx.strokeStyle = "rgba(143, 214, 255, 0.35)";
+        ctx.strokeRect(prop.x + 4.5, prop.y + 4.5, prop.w - 9, prop.h - 9);
+        ctx.fillStyle = "#5ee0d8";
+        ctx.fillRect(prop.x + prop.w - 14, prop.y + prop.h / 2 - 4, 6, 8);
+        ctx.fillStyle = "#ff6b6b";
+        ctx.fillRect(prop.x + 12, prop.y + 16, 18, 6);
+        ctx.fillRect(prop.x + 18, prop.y + 10, 6, 18);
+      } else if (prop.type === "med-scanner") {
+        ctx.fillStyle = "#1a3340";
+        ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
+        ctx.fillStyle = "#5ee0d8";
+        ctx.globalAlpha = 0.35;
+        ctx.fillRect(prop.x + 8, prop.y + 8, prop.w - 16, prop.h - 16);
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = "#8fd6ff";
+        ctx.strokeRect(prop.x + 6.5, prop.y + 6.5, prop.w - 13, prop.h - 13);
+      } else if (prop.type === "med-cross") {
+        ctx.fillStyle = "rgba(255, 90, 90, 0.9)";
+        ctx.fillRect(prop.x + prop.w / 2 - 8, prop.y, 16, prop.h);
+        ctx.fillRect(prop.x, prop.y + prop.h / 2 - 8, prop.w, 16);
+      } else if (prop.type === "key-card") {
+        if (window.SpaceQuestInventory.hasTakenWorldPickup(prop.id)) {
+          // already collected
+        } else {
+          ctx.fillStyle = "rgba(0,0,0,0.28)";
+          ctx.beginPath();
+          ctx.ellipse(
+            prop.x + prop.w / 2,
+            prop.y + prop.h - 2,
+            prop.w * 0.42,
+            6,
+            0,
+            0,
+            Math.PI * 2
+          );
+          ctx.fill();
+          ctx.fillStyle = "#e8f4ff";
+          ctx.fillRect(prop.x, prop.y + 6, prop.w, prop.h - 10);
+          ctx.fillStyle = "#3ec7c0";
+          ctx.fillRect(prop.x + 4, prop.y + 10, prop.w - 8, 10);
+          ctx.fillStyle = "#e0b245";
+          ctx.fillRect(prop.x + prop.w - 16, prop.y + 22, 10, 8);
+          ctx.strokeStyle = "rgba(20, 40, 60, 0.45)";
+          ctx.strokeRect(prop.x + 0.5, prop.y + 6.5, prop.w - 1, prop.h - 11);
+        }
       } else if (prop.type === "wounded-crewmate") {
         const taken = window.SpaceQuestInventory.hasTakenWorldPickup(prop.id);
         const fade = propFades.get(prop.id);
@@ -1384,9 +1524,15 @@ window.SpaceQuestAdventure = (() => {
         hideInteractPrompt();
         stop();
         if (typeof onCombat === "function") {
+          const wave = enemies
+            .filter((e) => !e.defeated)
+            .slice()
+            .sort(
+              (a, b) => (a.combatOrder || 0) - (b.combatOrder || 0)
+            );
           onCombat({
-            enemy: touched,
-            enemies: [touched],
+            enemy: wave[0] || touched,
+            enemies: wave.length ? wave : [touched],
             roomId: room.id,
             player: { x: player.x, y: player.y },
           });

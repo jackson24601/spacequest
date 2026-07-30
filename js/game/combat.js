@@ -61,16 +61,7 @@ window.SpaceQuestCombat = (() => {
       }
     });
 
-    enemySide?.addEventListener("click", (event) => {
-      const unit = event.target.closest("[data-unit-id]");
-      if (!unit || turn !== "player") return;
-      const id = unit.getAttribute("data-unit-id");
-      const target = enemyUnits.find((e) => e.id === id && e.hp > 0);
-      if (target) {
-        selectedEnemyId = target.id;
-        renderUnits();
-      }
-    });
+    // Targeting is fixed in spawn order (Alien 1 → 2 → …); clicks do not retarget.
 
     continueBtn?.addEventListener("click", () => {
       if (!handlers.outcome) return;
@@ -183,13 +174,14 @@ window.SpaceQuestCombat = (() => {
   }
 
   function livingEnemies() {
+    // Preserve encounter order so attacks and turns stay Alien 1 → 2 → …
     return enemyUnits.filter((e) => e.hp > 0);
   }
 
   function getSelectedEnemy() {
-    let target = enemyUnits.find((e) => e.id === selectedEnemyId && e.hp > 0);
-    if (!target) target = livingEnemies()[0] || null;
-    if (target) selectedEnemyId = target.id;
+    // Damage always applies to the first living alien in order
+    const target = livingEnemies()[0] || null;
+    selectedEnemyId = target?.id || null;
     return target;
   }
 
@@ -214,13 +206,13 @@ window.SpaceQuestCombat = (() => {
 
     if (hit) {
       target.hp = Math.max(0, target.hp - UNARMED_DAMAGE);
-      renderUnits();
-      floatDamage(target.id, `-${UNARMED_DAMAGE}`, "hit");
       log(`You ${label.toLowerCase()} the ${target.name} for ${UNARMED_DAMAGE} damage!`);
     } else {
-      floatDamage(target.id, "Miss", "miss");
       log(`Your ${label.toLowerCase()} misses the ${target.name}.`);
     }
+    getSelectedEnemy();
+    renderUnits();
+    floatDamage(target.id, hit ? `-${UNARMED_DAMAGE}` : "Miss", hit ? "hit" : "miss");
 
     await wait(650);
 
@@ -250,11 +242,12 @@ window.SpaceQuestCombat = (() => {
     syncItemActions();
 
     target.hp = Math.max(0, target.hp - COFFEE_DAMAGE);
-    renderUnits();
-    floatDamage(target.id, `-${COFFEE_DAMAGE}`, "hit");
     log(
       `You hurl the pot of coffee at the ${target.name} for ${COFFEE_DAMAGE} damage!`
     );
+    getSelectedEnemy();
+    renderUnits();
+    floatDamage(target.id, `-${COFFEE_DAMAGE}`, "hit");
 
     await wait(650);
 
@@ -281,15 +274,15 @@ window.SpaceQuestCombat = (() => {
     const hit = rollHit(BLASTER_HIT_CHANCE);
     if (hit) {
       target.hp = Math.max(0, target.hp - BLASTER_DAMAGE);
-      renderUnits();
-      floatDamage(target.id, `-${BLASTER_DAMAGE}`, "hit");
       log(
         `You fire the blaster at the ${target.name} for ${BLASTER_DAMAGE} damage!`
       );
     } else {
-      floatDamage(target.id, "Miss", "miss");
       log(`Your blaster shot misses the ${target.name}.`);
     }
+    getSelectedEnemy();
+    renderUnits();
+    floatDamage(target.id, hit ? `-${BLASTER_DAMAGE}` : "Miss", hit ? "hit" : "miss");
 
     await wait(650);
 
@@ -310,7 +303,10 @@ window.SpaceQuestCombat = (() => {
   }
 
   async function enemyPhase() {
-    for (const enemy of livingEnemies()) {
+    // Snapshot living attackers at phase start: User → each living alien → User
+    const attackers = livingEnemies();
+    for (const enemy of attackers) {
+      if (enemy.hp <= 0) continue;
       const chance = enemy.hitChance ?? ENEMY_DEFAULT_HIT_CHANCE;
       const damage = enemy.attackDamage ?? 1;
       const hit = rollHit(chance);
@@ -337,7 +333,13 @@ window.SpaceQuestCombat = (() => {
     turn = "player";
     busy = false;
     setActionsEnabled(true);
+    syncTargetHighlight();
     log(turnPrompt());
+  }
+
+  function syncTargetHighlight() {
+    getSelectedEnemy();
+    renderUnits();
   }
 
   async function playPlayerDeath() {
@@ -358,7 +360,10 @@ window.SpaceQuestCombat = (() => {
 
     if (result === "win") {
       const onWin = handlers.onWin;
-      resultTextEl.textContent = "Victory! The alien collapses.";
+      const many = enemyUnits.length > 1;
+      resultTextEl.textContent = many
+        ? "Victory! The aliens collapse."
+        : "Victory! The alien collapses.";
       log("You won the battle.");
       handlers.outcome = () => {
         if (typeof onWin === "function") onWin();
@@ -400,10 +405,17 @@ window.SpaceQuestCombat = (() => {
         ? [nextEncounter.enemy]
         : [];
 
-    enemyUnits = rawEnemies.map((enemy, index) => ({
+    const ordered = rawEnemies.slice().sort((a, b) => {
+      const ao = a.combatOrder != null ? a.combatOrder : 999;
+      const bo = b.combatOrder != null ? b.combatOrder : 999;
+      return ao - bo;
+    });
+
+    enemyUnits = ordered.map((enemy, index) => ({
       id: enemy.id || `enemy-${index}`,
-      name: enemy.name || "Alien",
+      name: enemy.name || `Alien ${index + 1}`,
       type: enemy.type || null,
+      combatOrder: enemy.combatOrder != null ? enemy.combatOrder : index + 1,
       hp: enemy.hp ?? enemy.maxHp ?? 5,
       maxHp: enemy.maxHp ?? enemy.hp ?? 5,
       attackDamage: enemy.attackDamage ?? 1,
@@ -416,7 +428,15 @@ window.SpaceQuestCombat = (() => {
     renderUnits();
     syncItemActions();
     setActionsEnabled(true);
-    log(`Battle start! A ${enemyUnits.map((e) => e.name).join(", ")} appears.`);
+    if (root) {
+      root.classList.toggle("battle-horde", enemyUnits.length >= 3);
+    }
+    const names = enemyUnits.map((e) => e.name).join(", ");
+    log(
+      enemyUnits.length > 1
+        ? `Battle start! ${enemyUnits.length} aliens appear: ${names}.`
+        : `Battle start! A ${names} appears.`
+    );
     log(turnPrompt());
 
     if (root) {
@@ -429,6 +449,7 @@ window.SpaceQuestCombat = (() => {
     if (root) {
       root.setAttribute("data-active", "false");
       root.hidden = true;
+      root.classList.remove("battle-horde");
     }
   }
 

@@ -669,6 +669,36 @@
   padding-right: 0.5rem;
 }
 
+.battle-horde .battle-stage {
+  grid-template-columns: minmax(120px, 0.7fr) 1.6fr;
+}
+
+.battle-horde .battle-side--enemies {
+  gap: 0.35rem;
+  justify-content: center;
+}
+
+.battle-horde .battle-unit--enemy {
+  min-width: 72px;
+}
+
+.battle-horde .battle-unit--enemy .battle-sprite-wrap {
+  width: 72px;
+  height: 96px;
+}
+
+.battle-horde .battle-unit--enemy .battle-sprite {
+  width: 54px;
+}
+
+.battle-horde .battle-unit--enemy .battle-hp {
+  width: 72px;
+}
+
+.battle-horde .battle-unit--enemy .battle-name {
+  font-size: 0.72rem;
+}
+
 .battle-unit {
   position: relative;
   display: flex;
