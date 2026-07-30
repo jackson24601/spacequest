@@ -60,10 +60,16 @@ window.SpaceQuestApp = (() => {
     }
     if (tip) {
       if (room.kind === "special") {
-        tip.innerHTML =
-          room.specialType === "engine-room"
-            ? "<strong>Tip:</strong> Drive core online — exit left to the hallway"
-            : "<strong>Tip:</strong> Explore, then leave through the door";
+        if (room.specialType === "engine-room") {
+          tip.innerHTML =
+            "<strong>Tip:</strong> Drive core online — exit left to the hallway";
+        } else if (room.specialType === "infirmary") {
+          tip.innerHTML =
+            "<strong>Tip:</strong> Clear the aliens, then check the back of the room";
+        } else {
+          tip.innerHTML =
+            "<strong>Tip:</strong> Explore, then leave through the door";
+        }
       } else {
         const axes = room.movement?.axes;
         if (axes === "horizontal") {
@@ -274,6 +280,10 @@ window.SpaceQuestApp = (() => {
         }
         if (info?.itemId === window.SpaceQuestInventory.ITEM_IDS.COFFEE) {
           showGameMessage("Picked up a pot of coffee.");
+        } else if (
+          info?.itemId === window.SpaceQuestInventory.ITEM_IDS.MISSION_CONTROL
+        ) {
+          showGameMessage("Mission Control key card added to inventory.");
         } else {
           showGameMessage("Item added to inventory.");
         }
@@ -293,15 +303,24 @@ window.SpaceQuestApp = (() => {
       },
       onCombat: (encounter) => {
         show("combat");
+        const wave = Array.isArray(encounter.enemies)
+          ? encounter.enemies
+          : encounter.enemy
+            ? [encounter.enemy]
+            : [];
+        const multi = wave.length > 1;
         window.SpaceQuestCombat.open(encounter, {
           onWin: () => {
+            if (encounter.roomId === "infirmary") {
+              window.SpaceQuestInventory.takeWorldPickup("infirmary-ambush");
+            }
             startAdventure({
               roomId: encounter.roomId,
               resumePosition: encounter.player,
-              defeatedEnemyId: encounter.enemy.id,
-              placeCorpse: encounter.enemy,
-              afterCombatLoot: true,
-              defeatedEnemy: encounter.enemy,
+              defeatedEnemyId: encounter.enemy?.id || wave[0]?.id,
+              placeCorpse: multi ? null : encounter.enemy,
+              afterCombatLoot: !multi,
+              defeatedEnemy: multi ? null : encounter.enemy,
             });
           },
           onLose: () => {

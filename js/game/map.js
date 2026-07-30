@@ -473,6 +473,51 @@ window.SpaceQuestMap = (() => {
         { x: 560, y: 150, w: 60, h: 90 },
         { x: 560, y: 320, w: 60, h: 90 }
       );
+    } else if (kind === "infirmary") {
+      // Clinical sick bay: beds on the sides, open center, key at the far end
+      props.push(
+        { type: "label", x: 390, y: 96, text: "INFIRMARY" },
+        { type: "med-cross", x: 455, y: 88, w: 50, h: 50 },
+        { type: "med-bed", x: 100, y: 140, w: 210, h: 70 },
+        { type: "med-bed", x: 100, y: 240, w: 210, h: 70 },
+        { type: "med-bed", x: 100, y: 340, w: 210, h: 70 },
+        { type: "med-bed", x: 650, y: 140, w: 210, h: 70 },
+        { type: "med-bed", x: 650, y: 240, w: 210, h: 70 },
+        { type: "med-bed", x: 650, y: 340, w: 210, h: 70 },
+        { type: "med-monitor", x: 120, y: 118, w: 54, h: 36 },
+        { type: "med-monitor", x: 120, y: 218, w: 54, h: 36 },
+        { type: "med-monitor", x: 786, y: 118, w: 54, h: 36 },
+        { type: "med-monitor", x: 786, y: 218, w: 54, h: 36 },
+        { type: "iv-stand", x: 300, y: 150, w: 18, h: 90 },
+        { type: "iv-stand", x: 300, y: 320, w: 18, h: 90 },
+        { type: "iv-stand", x: 642, y: 150, w: 18, h: 90 },
+        { type: "iv-stand", x: 642, y: 320, w: 18, h: 90 },
+        { type: "med-cabinet", x: 360, y: 120, w: 70, h: 90 },
+        { type: "med-cabinet", x: 530, y: 120, w: 70, h: 90 },
+        { type: "med-scanner", x: 400, y: 250, w: 160, h: 36 },
+        {
+          type: "key-card",
+          id: "infirmary-mission-control-key",
+          itemId: "mission-control-key",
+          pickupLabel: "Pick Up Key Card",
+          pickupMessage:
+            "You pick up a key card to the Mission Control Room.",
+          x: 448,
+          y: 420,
+          w: 64,
+          h: 36,
+        }
+      );
+      solids.push(
+        { x: 100, y: 140, w: 210, h: 70 },
+        { x: 100, y: 240, w: 210, h: 70 },
+        { x: 100, y: 340, w: 210, h: 70 },
+        { x: 650, y: 140, w: 210, h: 70 },
+        { x: 650, y: 240, w: 210, h: 70 },
+        { x: 650, y: 340, w: 210, h: 70 },
+        { x: 360, y: 120, w: 70, h: 90 },
+        { x: 530, y: 120, w: 70, h: 90 }
+      );
     } else {
       // Remaining locked special rooms still get a simple stub layout
       props.push(
@@ -515,6 +560,16 @@ window.SpaceQuestMap = (() => {
           ? buildHallwayLayout(exits, lockedDirs)
           : buildSpecialLayout(special.id, exits);
 
+        const palette = { ...PALETTE };
+        if (special?.id === "infirmary") {
+          palette.floor = "#4d6a78";
+          palette.wall = "#1a3d4d";
+          palette.wallDark = "#0d2430";
+          palette.accent = "#5ee0d8";
+          palette.accentWarm = "#8fd6ff";
+          palette.metal = "#a8c4d4";
+        }
+
         rooms[id] = {
           id,
           name: label,
@@ -531,7 +586,7 @@ window.SpaceQuestMap = (() => {
           enemies: [],
           exits,
           lockedDirs,
-          palette: { ...PALETTE },
+          palette,
         };
 
         if (isStart) startRoomId = id;
