@@ -616,118 +616,161 @@ window.SpaceQuestAdventure = (() => {
     return null;
   }
 
+  function drawPaneledWall(x, y, w, h, palette) {
+    const panelW = 48;
+    const panelH = 40;
+    ctx.fillStyle = palette.wallDark || "#3a6a98";
+    ctx.fillRect(x, y, w, h);
+    for (let py = y; py < y + h; py += panelH) {
+      for (let px = x; px < x + w; px += panelW) {
+        const pw = Math.min(panelW - 2, x + w - px - 1);
+        const ph = Math.min(panelH - 2, y + h - py - 1);
+        if (pw <= 2 || ph <= 2) continue;
+        const even = ((px - x) / panelW + (py - y) / panelH) % 2 < 1;
+        ctx.fillStyle = even
+          ? palette.panel || palette.wall
+          : palette.wall || "#7eb0d8";
+        ctx.fillRect(px + 1, py + 1, pw, ph);
+        ctx.fillStyle = palette.wallMid || "#5a92c0";
+        ctx.fillRect(px + 1, py + ph - 3, pw, 3);
+        ctx.fillStyle = "rgba(255,255,255,0.18)";
+        ctx.fillRect(px + 2, py + 2, Math.max(1, pw - 4), 2);
+        ctx.strokeStyle = palette.panelEdge || "#2a4060";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(px + 1.5, py + 1.5, pw - 1, ph - 1);
+      }
+    }
+  }
+
+  function drawPaneledFloor(x, y, w, h, palette) {
+    const tile = 36;
+    ctx.fillStyle = palette.floorDark || "#7a86a8";
+    ctx.fillRect(x, y, w, h);
+    for (let py = y; py < y + h; py += tile) {
+      for (let px = x; px < x + w; px += tile) {
+        const tw = Math.min(tile - 1, x + w - px);
+        const th = Math.min(tile - 1, y + h - py);
+        if (tw <= 1 || th <= 1) continue;
+        const even = ((px + py) / tile) % 2 < 1;
+        ctx.fillStyle = even
+          ? palette.floorLight || "#b8c2de"
+          : palette.floor || "#9aa6c8";
+        ctx.fillRect(px, py, tw, th);
+        ctx.strokeStyle = "rgba(42, 64, 96, 0.35)";
+        ctx.strokeRect(px + 0.5, py + 0.5, tw - 1, th - 1);
+      }
+    }
+  }
+
+  function drawRedBand(x, y, w, h, palette) {
+    ctx.fillStyle = palette.redBand || "#d02038";
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = "rgba(255, 120, 140, 0.35)";
+    ctx.fillRect(x, y, w, Math.max(2, Math.floor(h * 0.35)));
+    ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
+    ctx.fillRect(x, y + h - 2, w, 2);
+  }
+
+  function drawHazardStripes(x, y, w, h, vertical = false) {
+    const yel = "#f0d030";
+    const blk = "#1a1a24";
+    ctx.fillStyle = blk;
+    ctx.fillRect(x, y, w, h);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, y, w, h);
+    ctx.clip();
+    const step = 14;
+    ctx.fillStyle = yel;
+    if (vertical) {
+      for (let i = -h; i < w + h; i += step) {
+        ctx.beginPath();
+        ctx.moveTo(x + i, y);
+        ctx.lineTo(x + i + step * 0.55, y);
+        ctx.lineTo(x + i + step * 0.55 - h, y + h);
+        ctx.lineTo(x + i - h, y + h);
+        ctx.closePath();
+        ctx.fill();
+      }
+    } else {
+      for (let i = -w; i < w + h; i += step) {
+        ctx.beginPath();
+        ctx.moveTo(x, y + i);
+        ctx.lineTo(x + w, y + i - w * 0.35);
+        ctx.lineTo(x + w, y + i - w * 0.35 + step * 0.55);
+        ctx.lineTo(x, y + i + step * 0.55);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
   function drawRoomBackdrop() {
     const { palette, movement, kind } = room;
     const { WIDTH, HEIGHT } = window.SpaceQuestRooms;
     const axes = movement?.axes || "horizontal";
 
-    const wallGrad = ctx.createLinearGradient(0, 0, 0, HEIGHT);
-    wallGrad.addColorStop(0, palette.wallDark);
-    wallGrad.addColorStop(0.45, palette.wall);
-    wallGrad.addColorStop(1, palette.wallDark);
-    ctx.fillStyle = wallGrad;
+    // Deep wall fill behind everything
+    ctx.fillStyle = palette.wallDeep || "#2a4a70";
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    drawPaneledWall(0, 0, WIDTH, HEIGHT, palette);
 
     if (kind === "special") {
-      const floorGrad = ctx.createLinearGradient(0, 70, 0, HEIGHT - 70);
-      floorGrad.addColorStop(0, "#4f5160");
-      floorGrad.addColorStop(0.5, palette.floor);
-      floorGrad.addColorStop(1, "#3b3a48");
-      ctx.fillStyle = floorGrad;
-      ctx.fillRect(70, 70, WIDTH - 140, HEIGHT - 140);
-
-      ctx.strokeStyle = "rgba(15, 12, 24, 0.22)";
-      ctx.lineWidth = 1;
-      for (let x = 70; x < WIDTH - 70; x += 40) {
-        ctx.beginPath();
-        ctx.moveTo(x, 70);
-        ctx.lineTo(x, HEIGHT - 70);
-        ctx.stroke();
-      }
-      for (let y = 70; y < HEIGHT - 70; y += 40) {
-        ctx.beginPath();
-        ctx.moveTo(70, y);
-        ctx.lineTo(WIDTH - 70, y);
-        ctx.stroke();
-      }
+      const inset = 70;
+      drawPaneledFloor(
+        inset,
+        inset,
+        WIDTH - inset * 2,
+        HEIGHT - inset * 2,
+        palette
+      );
+      // Red edge bands (Sierra corridor lip)
+      drawRedBand(inset, inset, WIDTH - inset * 2, 10, palette);
+      drawRedBand(inset, HEIGHT - inset - 10, WIDTH - inset * 2, 10, palette);
+      drawRedBand(inset, inset, 10, HEIGHT - inset * 2, palette);
+      drawRedBand(WIDTH - inset - 10, inset, 10, HEIGHT - inset * 2, palette);
     } else if (axes === "vertical") {
       const floorLeft = 220;
       const floorRight = 740;
-      const floorGrad = ctx.createLinearGradient(floorLeft, 0, floorRight, 0);
-      floorGrad.addColorStop(0, "#3a3746");
-      floorGrad.addColorStop(0.5, palette.floor);
-      floorGrad.addColorStop(1, "#3a3746");
-      ctx.fillStyle = floorGrad;
-      ctx.fillRect(floorLeft, 0, floorRight - floorLeft, HEIGHT);
-
-      ctx.strokeStyle = "rgba(15, 12, 24, 0.28)";
-      ctx.lineWidth = 2;
-      for (let y = 0; y <= HEIGHT; y += 40) {
-        ctx.beginPath();
-        ctx.moveTo(floorLeft, y);
-        ctx.lineTo(floorRight, y);
-        ctx.stroke();
-      }
-      for (let x = floorLeft; x <= floorRight; x += 40) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, HEIGHT);
-        ctx.stroke();
-      }
+      drawPaneledFloor(floorLeft, 0, floorRight - floorLeft, HEIGHT, palette);
+      drawRedBand(floorLeft, 0, 12, HEIGHT, palette);
+      drawRedBand(floorRight - 12, 0, 12, HEIGHT, palette);
     } else {
       const floorTop = axes === "both" ? 120 : 150;
       const floorBottom = axes === "both" ? 420 : 390;
-      const floorGrad = ctx.createLinearGradient(0, floorTop, 0, floorBottom);
-      floorGrad.addColorStop(0, "#4a4658");
-      floorGrad.addColorStop(0.5, palette.floor);
-      floorGrad.addColorStop(1, "#3a3746");
-      ctx.fillStyle = floorGrad;
-      ctx.fillRect(0, floorTop, WIDTH, floorBottom - floorTop);
-
-      ctx.strokeStyle = "rgba(15, 12, 24, 0.28)";
-      ctx.lineWidth = 2;
-      for (let x = 0; x <= WIDTH; x += 60) {
-        ctx.beginPath();
-        ctx.moveTo(x, floorTop);
-        ctx.lineTo(x * 0.96 + WIDTH * 0.02, floorBottom);
-        ctx.stroke();
-      }
-      for (let y = floorTop; y <= floorBottom; y += 28) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(WIDTH, y);
-        ctx.stroke();
+      drawPaneledFloor(0, floorTop, WIDTH, floorBottom - floorTop, palette);
+      drawRedBand(0, floorTop, WIDTH, 12, palette);
+      drawRedBand(0, floorBottom - 12, WIDTH, 12, palette);
+      if (axes === "both") {
+        // Cross-junction vertical lane
+        drawPaneledFloor(380, 0, 200, HEIGHT, palette);
+        drawRedBand(380, 0, 12, floorTop, palette);
+        drawRedBand(568, 0, 12, floorTop, palette);
+        drawRedBand(380, floorBottom, 12, HEIGHT - floorBottom, palette);
+        drawRedBand(568, floorBottom, 12, HEIGHT - floorBottom, palette);
       }
     }
 
+    // Bulkhead solids as thick paneled blocks
     for (const solid of room.solids) {
-      const grad = ctx.createLinearGradient(
-        solid.x,
-        solid.y,
-        solid.x,
-        solid.y + solid.h
-      );
-      grad.addColorStop(0, "#3a516f");
-      grad.addColorStop(1, palette.wallDark);
-      ctx.fillStyle = grad;
-      ctx.fillRect(solid.x, solid.y, solid.w, solid.h);
-
-      ctx.fillStyle = "rgba(200, 220, 240, 0.18)";
+      drawPaneledWall(solid.x, solid.y, solid.w, solid.h, palette);
+      ctx.strokeStyle = palette.panelEdge || "#2a4060";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(solid.x + 1, solid.y + 1, solid.w - 2, solid.h - 2);
+      // Rivets
+      ctx.fillStyle = palette.metal || "#c8d4e8";
       if (solid.w >= solid.h) {
         const rivetY =
-          solid.y < HEIGHT / 2 ? solid.y + solid.h - 14 : solid.y + 10;
-        for (let x = solid.x + 24; x < solid.x + solid.w; x += 36) {
-          ctx.beginPath();
-          ctx.arc(x, rivetY, 2.2, 0, Math.PI * 2);
-          ctx.fill();
+          solid.y < HEIGHT / 2 ? solid.y + solid.h - 12 : solid.y + 8;
+        for (let x = solid.x + 18; x < solid.x + solid.w - 8; x += 32) {
+          ctx.fillRect(x, rivetY, 4, 4);
         }
       } else {
         const rivetX =
-          solid.x < WIDTH / 2 ? solid.x + solid.w - 14 : solid.x + 10;
-        for (let y = solid.y + 24; y < solid.y + solid.h; y += 36) {
-          ctx.beginPath();
-          ctx.arc(rivetX, y, 2.2, 0, Math.PI * 2);
-          ctx.fill();
+          solid.x < WIDTH / 2 ? solid.x + solid.w - 12 : solid.x + 8;
+        for (let y = solid.y + 18; y < solid.y + solid.h - 8; y += 32) {
+          ctx.fillRect(rivetX, y, 4, 4);
         }
       }
     }
@@ -741,92 +784,126 @@ window.SpaceQuestAdventure = (() => {
 
     for (const prop of room.props) {
       if (prop.type === "panel") {
-        ctx.fillStyle = palette.wallDark;
+        ctx.fillStyle = palette.wallDeep || "#2a4a70";
         ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
-        ctx.fillStyle = `rgba(62, 199, 192, ${0.35 + pulse * 0.35})`;
-        ctx.fillRect(prop.x + 10, prop.y + 14, prop.w - 20, 10);
+        ctx.fillStyle = "#0a1020";
+        ctx.fillRect(prop.x + 6, prop.y + 8, prop.w - 12, 22);
+        ctx.fillStyle = `rgba(224, 48, 64, ${0.55 + pulse * 0.4})`;
+        ctx.font = "800 11px Outfit, sans-serif";
+        ctx.fillText("ALERT", prop.x + 12, prop.y + 23);
+        ctx.fillStyle = palette.accent;
+        ctx.fillRect(prop.x + 8, prop.y + 36, prop.w - 16, 6);
         ctx.fillStyle = palette.accentWarm;
-        ctx.fillRect(prop.x + 10, prop.y + 34, prop.w - 20, 8);
+        ctx.fillRect(prop.x + 8, prop.y + 48, prop.w - 16, 6);
         ctx.fillStyle = palette.metal;
         ctx.fillRect(
-          prop.x + 10,
-          prop.y + 52,
-          prop.w - 20,
-          Math.max(18, prop.h - 64)
+          prop.x + 8,
+          prop.y + 60,
+          prop.w - 16,
+          Math.max(12, prop.h - 72)
         );
-        ctx.strokeStyle = "rgba(255,255,255,0.08)";
-        ctx.strokeRect(prop.x + 0.5, prop.y + 0.5, prop.w - 1, prop.h - 1);
+        ctx.strokeStyle = palette.panelEdge || "#2a4060";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(prop.x + 1, prop.y + 1, prop.w - 2, prop.h - 2);
       } else if (prop.type === "stripe") {
-        ctx.fillStyle = "rgba(62, 199, 192, 0.22)";
-        ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
+        drawHazardStripes(prop.x, prop.y, prop.w, prop.h, prop.h > prop.w);
       } else if (prop.type === "light") {
-        const glow = 0.25 + pulse * 0.75;
-        ctx.fillStyle = `rgba(255, 70, 70, ${0.35 + glow * 0.4})`;
+        const glow = 0.35 + pulse * 0.65;
+        ctx.fillStyle = "#1a1020";
+        ctx.fillRect(prop.x - 2, prop.y - 2, prop.w + 4, prop.h + 4);
+        ctx.fillStyle = `rgba(224, 48, 64, ${0.55 + glow * 0.4})`;
         ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
-        ctx.fillStyle = `rgba(255, 120, 120, ${glow})`;
-        ctx.beginPath();
-        ctx.ellipse(
-          prop.x + prop.w / 2,
-          prop.y + prop.h + 8,
-          prop.w * 1.1,
-          18,
-          0,
-          0,
-          Math.PI * 2
-        );
-        ctx.fill();
+        ctx.fillStyle = `rgba(255, 90, 90, ${glow})`;
+        ctx.fillRect(prop.x + 3, prop.y + 2, prop.w - 6, Math.max(2, prop.h - 4));
       } else if (prop.type === "door-side" || prop.type === "door-locked-side") {
         const locked = isDoorVisuallyLocked(prop);
-        ctx.fillStyle = "#0d1520";
-        ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
-        ctx.fillStyle = locked
-          ? `rgba(255, 77, 77, ${0.45 + pulse * 0.4})`
-          : `rgba(62, 199, 192, ${0.35 + pulse * 0.35})`;
-        ctx.fillRect(prop.x + 8, prop.y + 20, 6, prop.h - 40);
-        ctx.fillStyle = palette.metal;
-        ctx.fillRect(
-          prop.x + (prop.x < 100 ? prop.w - 8 : 2),
-          prop.y + prop.h / 2 - 10,
-          6,
-          20
-        );
+        const left = prop.x < 100;
+        // Cyan frame
+        ctx.fillStyle = locked ? "#e03040" : palette.accent || "#3ee0e8";
+        ctx.fillRect(prop.x - 4, prop.y - 8, prop.w + 8, prop.h + 16);
+        ctx.fillStyle = palette.wallDeep || "#2a4a70";
+        ctx.fillRect(prop.x - 1, prop.y - 4, prop.w + 2, prop.h + 8);
+        drawHazardStripes(prop.x, prop.y, prop.w, prop.h, true);
+        // Center seam
+        ctx.fillStyle = "#0a1020";
+        ctx.fillRect(prop.x + prop.w / 2 - 2, prop.y + 4, 4, prop.h - 8);
+        // Indicator
+        ctx.fillStyle = locked ? "#e03040" : "#f08020";
+        ctx.beginPath();
+        const ix = left ? prop.x + prop.w + 6 : prop.x - 14;
+        const iy = prop.y + prop.h / 2;
+        ctx.moveTo(ix, iy - 8);
+        ctx.lineTo(ix + 10, iy);
+        ctx.lineTo(ix, iy + 8);
+        ctx.closePath();
+        ctx.fill();
         if (locked) {
-          ctx.fillStyle = "#ffd56a";
-          ctx.fillRect(prop.x + 8, prop.y + prop.h / 2 - 8, 12, 16);
+          ctx.fillStyle = palette.accentWarm;
+          ctx.fillRect(prop.x + 6, prop.y + prop.h / 2 - 10, 14, 20);
+          ctx.fillStyle = "#1a1a24";
+          ctx.fillRect(prop.x + 10, prop.y + prop.h / 2 - 4, 6, 10);
         }
       } else if (prop.type === "door-top" || prop.type === "door-locked-top") {
         const locked = isDoorVisuallyLocked(prop);
-        ctx.fillStyle = "#0d1520";
-        ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
-        ctx.fillStyle = locked
-          ? `rgba(255, 77, 77, ${0.45 + pulse * 0.4})`
-          : `rgba(62, 199, 192, ${0.35 + pulse * 0.35})`;
-        ctx.fillRect(prop.x + 20, prop.y + 8, prop.w - 40, 6);
-        ctx.fillStyle = palette.metal;
-        ctx.fillRect(
-          prop.x + prop.w / 2 - 10,
-          prop.y + (prop.y < 40 ? prop.h - 8 : 2),
-          20,
-          6
-        );
+        const top = prop.y < 40;
+        ctx.fillStyle = locked ? "#e03040" : palette.accent || "#3ee0e8";
+        ctx.fillRect(prop.x - 10, prop.y - 4, prop.w + 20, prop.h + 8);
+        ctx.fillStyle = palette.wallDeep || "#2a4a70";
+        ctx.fillRect(prop.x - 6, prop.y - 1, prop.w + 12, prop.h + 2);
+        drawHazardStripes(prop.x, prop.y, prop.w, prop.h, false);
+        ctx.fillStyle = "#0a1020";
+        ctx.fillRect(prop.x + 8, prop.y + prop.h / 2 - 2, prop.w - 16, 4);
+        // Down / up chevron
+        ctx.fillStyle = locked ? "#e03040" : "#f08020";
+        ctx.beginPath();
+        const cx = prop.x + prop.w / 2;
+        const cy = top ? prop.y + prop.h + 10 : prop.y - 10;
+        if (top) {
+          ctx.moveTo(cx - 10, cy - 6);
+          ctx.lineTo(cx + 10, cy - 6);
+          ctx.lineTo(cx, cy + 6);
+        } else {
+          ctx.moveTo(cx - 10, cy + 6);
+          ctx.lineTo(cx + 10, cy + 6);
+          ctx.lineTo(cx, cy - 6);
+        }
+        ctx.closePath();
+        ctx.fill();
         if (locked) {
-          ctx.fillStyle = "#ffd56a";
-          ctx.fillRect(prop.x + prop.w / 2 - 8, prop.y + 6, 16, 12);
+          ctx.fillStyle = palette.accentWarm;
+          ctx.fillRect(prop.x + prop.w / 2 - 10, prop.y + 4, 20, 14);
         }
       } else if (prop.type === "label") {
-        ctx.fillStyle = "rgba(234, 242, 255, 0.85)";
-        ctx.font = "700 18px Outfit, sans-serif";
-        ctx.fillText(prop.text, prop.x, prop.y);
+        // Sign board like classic adventure UI plaques
+        const text = prop.text || "";
+        ctx.font = "800 16px Outfit, sans-serif";
+        const tw = ctx.measureText(text).width;
+        ctx.fillStyle = "#0a1020";
+        ctx.fillRect(prop.x - 8, prop.y - 18, tw + 16, 26);
+        ctx.strokeStyle = palette.alarm || "#e03040";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(prop.x - 8, prop.y - 18, tw + 16, 26);
+        ctx.fillStyle = "#f0f4ff";
+        ctx.fillText(text, prop.x, prop.y);
       } else if (prop.type === "counter") {
-        ctx.fillStyle = "#2f415c";
+        ctx.fillStyle = "#4a6a90";
         ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
-        ctx.fillStyle = "#3ec7c0";
-        ctx.fillRect(prop.x, prop.y, prop.w, 6);
+        ctx.fillStyle = "#8ec4e8";
+        ctx.fillRect(prop.x, prop.y, prop.w, 8);
+        ctx.fillStyle = "#2a4060";
+        ctx.fillRect(prop.x, prop.y + prop.h - 6, prop.w, 6);
+        ctx.strokeStyle = "#2a4060";
+        ctx.strokeRect(prop.x + 0.5, prop.y + 0.5, prop.w - 1, prop.h - 1);
       } else if (prop.type === "table") {
-        ctx.fillStyle = "#6d5844";
+        ctx.fillStyle = "#3a5a80";
         ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
-        ctx.fillStyle = "#8a7055";
-        ctx.fillRect(prop.x + 8, prop.y + 8, prop.w - 16, prop.h - 16);
+        ctx.fillStyle = "#b8c8e0";
+        ctx.fillRect(prop.x + 6, prop.y + 6, prop.w - 12, prop.h - 18);
+        ctx.fillStyle = "#d02038";
+        ctx.fillRect(prop.x + 6, prop.y + prop.h - 14, prop.w - 12, 6);
+        ctx.strokeStyle = "#2a4060";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(prop.x + 1, prop.y + 1, prop.w - 2, prop.h - 2);
       } else if (prop.type === "coffee-pot") {
         if (window.SpaceQuestInventory.hasTakenWorldPickup(prop.id)) {
           // already collected — skip drawing
@@ -890,20 +967,29 @@ window.SpaceQuestAdventure = (() => {
         ctx.fillStyle = "#e0b245";
         ctx.fillRect(prop.x + 8, prop.y + 8, prop.w - 16, 8);
       } else if (prop.type === "bunk") {
-        ctx.fillStyle = "#2a3348";
+        ctx.fillStyle = "#3a6088";
         ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
-        ctx.fillStyle = "#4b6d8c";
-        ctx.fillRect(prop.x + 10, prop.y + 12, prop.w - 20, 34);
-        ctx.fillRect(prop.x + 10, prop.y + 64, prop.w - 20, 34);
-        ctx.fillStyle = "#d7dee8";
-        ctx.fillRect(prop.x + 16, prop.y + 18, 36, 20);
-        ctx.fillRect(prop.x + 16, prop.y + 70, 36, 20);
+        ctx.fillStyle = "#6a98c0";
+        ctx.fillRect(prop.x + 8, prop.y + 10, prop.w - 16, 36);
+        ctx.fillRect(prop.x + 8, prop.y + 62, prop.w - 16, 36);
+        ctx.fillStyle = "#e8eef8";
+        ctx.fillRect(prop.x + 16, prop.y + 16, 40, 22);
+        ctx.fillRect(prop.x + 16, prop.y + 68, 40, 22);
+        ctx.fillStyle = "#e03060";
+        ctx.fillRect(prop.x + 16, prop.y + 16, 8, 22);
+        ctx.fillRect(prop.x + 16, prop.y + 68, 8, 22);
+        ctx.strokeStyle = "#2a4060";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(prop.x + 1, prop.y + 1, prop.w - 2, prop.h - 2);
       } else if (prop.type === "locker") {
-        ctx.fillStyle = "#3a4d66";
+        ctx.fillStyle = "#4a78a8";
         ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
-        ctx.strokeStyle = "rgba(255,255,255,0.15)";
-        ctx.strokeRect(prop.x + 0.5, prop.y + 0.5, prop.w - 1, prop.h - 1);
-        ctx.fillStyle = "#e0b245";
+        ctx.fillStyle = "#8ec4e8";
+        ctx.fillRect(prop.x + 4, prop.y + 4, prop.w - 8, prop.h - 8);
+        ctx.strokeStyle = "#2a4060";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(prop.x + 1, prop.y + 1, prop.w - 2, prop.h - 2);
+        ctx.fillStyle = "#f0d030";
         ctx.fillRect(prop.x + prop.w - 14, prop.y + prop.h / 2 - 4, 8, 8);
       } else if (prop.type === "foot-locker") {
         // Low trunk at floor level
@@ -1084,48 +1170,35 @@ window.SpaceQuestAdventure = (() => {
       } else if (prop.type === "dead-astronaut") {
         const facing = prop.facing >= 0 ? 1 : -1;
         const cx = prop.x + prop.w / 2;
-        const cy = prop.y + prop.h / 2;
-        // Blood pool
-        ctx.fillStyle = "rgba(120, 18, 28, 0.55)";
-        ctx.beginPath();
-        ctx.ellipse(cx, prop.y + prop.h - 4, prop.w * 0.55, 14, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "rgba(160, 30, 40, 0.4)";
-        ctx.beginPath();
-        ctx.ellipse(
-          cx + facing * 10,
-          prop.y + prop.h - 2,
-          prop.w * 0.35,
-          9,
-          0.2,
-          0,
-          Math.PI * 2
-        );
-        ctx.fill();
-        // Body
+        // Pixel blood pool
+        ctx.fillStyle = "#6a1424";
+        ctx.fillRect(prop.x + 4, prop.y + prop.h - 12, prop.w - 8, 10);
+        ctx.fillStyle = "#a02038";
+        ctx.fillRect(prop.x + 10, prop.y + prop.h - 10, prop.w - 18, 6);
+        ctx.fillStyle = "#c03048";
+        ctx.fillRect(prop.x + 14, prop.y + prop.h - 14, 16, 4);
         ctx.save();
         if (facing < 0) {
-          ctx.translate(cx, cy);
+          ctx.translate(cx, prop.y + prop.h / 2);
           ctx.scale(-1, 1);
-          ctx.translate(-cx, -cy);
+          ctx.translate(-cx, -(prop.y + prop.h / 2));
         }
-        ctx.fillStyle = "#c5ccd8";
-        ctx.fillRect(prop.x + 16, prop.y + 14, prop.w - 28, 18);
-        ctx.fillStyle = "#7b8799";
-        ctx.fillRect(prop.x + 16, prop.y + 26, prop.w - 28, 8);
-        ctx.fillStyle = "#2c3a52";
-        ctx.fillRect(prop.x + prop.w - 18, prop.y + 16, 12, 16);
-        ctx.fillStyle = "#e8b896";
-        ctx.fillRect(prop.x + 4, prop.y + 12, 14, 14);
-        ctx.fillStyle = "#d8e2f0";
-        ctx.beginPath();
-        ctx.arc(prop.x + 11, prop.y + 10, 9, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = "rgba(255,255,255,0.25)";
-        ctx.stroke();
-        // Visor crack / dark
-        ctx.fillStyle = "rgba(20, 30, 40, 0.75)";
-        ctx.fillRect(prop.x + 7, prop.y + 7, 8, 5);
+        // White suit body with blue/red accents (classic SQ corpse)
+        ctx.fillStyle = "#e8eef8";
+        ctx.fillRect(prop.x + 14, prop.y + 12, prop.w - 26, 16);
+        ctx.fillStyle = "#3a6ab0";
+        ctx.fillRect(prop.x + 14, prop.y + 20, prop.w - 26, 6);
+        ctx.fillStyle = "#e03060";
+        ctx.fillRect(prop.x + 18, prop.y + 12, 8, 16);
+        ctx.fillStyle = "#1a2438";
+        ctx.fillRect(prop.x + prop.w - 16, prop.y + 14, 10, 14);
+        ctx.fillStyle = "#f0c8a0";
+        ctx.fillRect(prop.x + 4, prop.y + 12, 12, 12);
+        ctx.fillStyle = "#f0d050";
+        ctx.fillRect(prop.x + 4, prop.y + 8, 12, 6);
+        ctx.fillStyle = "#1a2438";
+        ctx.fillRect(prop.x + 6, prop.y + 14, 3, 3);
+        ctx.fillRect(prop.x + 11, prop.y + 14, 3, 3);
         ctx.restore();
       } else if (prop.type === "wounded-crewmate") {
         const taken = window.SpaceQuestInventory.hasTakenWorldPickup(prop.id);
@@ -1268,18 +1341,21 @@ window.SpaceQuestAdventure = (() => {
         ctx.font = "700 14px Outfit, sans-serif";
         ctx.fillText("DRIVE CORE", prop.x + 48, prop.y + 28);
       } else if (prop.type === "console") {
-        ctx.fillStyle = "#24344c";
+        ctx.fillStyle = "#3a6088";
         ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
-        ctx.fillStyle = "#0d1520";
-        ctx.fillRect(prop.x + 10, prop.y + 10, prop.w - 20, prop.h - 28);
-        ctx.fillStyle = `rgba(62, 199, 192, ${0.45 + pulse * 0.35})`;
-        ctx.fillRect(prop.x + 16, prop.y + 16, prop.w - 32, 10);
-        ctx.fillStyle = palette.accentWarm;
-        ctx.fillRect(prop.x + 16, prop.y + 32, 28, 8);
-        ctx.fillStyle = "#ff6b4a";
-        ctx.fillRect(prop.x + 52, prop.y + 32, 18, 8);
-        ctx.fillStyle = palette.metal;
-        ctx.fillRect(prop.x + 8, prop.y + prop.h - 14, prop.w - 16, 8);
+        ctx.fillStyle = "#0a1020";
+        ctx.fillRect(prop.x + 8, prop.y + 8, prop.w - 16, prop.h - 24);
+        ctx.fillStyle = `rgba(62, 224, 232, ${0.5 + pulse * 0.4})`;
+        ctx.fillRect(prop.x + 14, prop.y + 14, prop.w - 28, 10);
+        ctx.fillStyle = "#f0d030";
+        ctx.fillRect(prop.x + 14, prop.y + 30, 26, 8);
+        ctx.fillStyle = "#e03040";
+        ctx.fillRect(prop.x + 48, prop.y + 30, 16, 8);
+        ctx.fillStyle = "#c8d4e8";
+        ctx.fillRect(prop.x + 8, prop.y + prop.h - 12, prop.w - 16, 8);
+        ctx.strokeStyle = "#2a4060";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(prop.x + 1, prop.y + 1, prop.w - 2, prop.h - 2);
       } else if (prop.type === "pipe" || prop.type === "pipe-vert") {
         ctx.fillStyle = "#6d7f96";
         ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
@@ -1367,22 +1443,21 @@ window.SpaceQuestAdventure = (() => {
   }
 
   function drawPlayer() {
-    ctx.fillStyle = "rgba(0,0,0,0.3)";
-    ctx.beginPath();
-    ctx.ellipse(
-      player.x + player.w / 2,
-      player.y + player.h - 2,
-      player.w * 0.3,
-      7,
-      0,
-      0,
-      Math.PI * 2
+    // Hard pixel shadow
+    ctx.fillStyle = "rgba(26, 36, 56, 0.45)";
+    ctx.fillRect(
+      player.x + player.w * 0.22,
+      player.y + player.h - 6,
+      player.w * 0.56,
+      6
     );
-    ctx.fill();
 
-    const bob = player.moving ? Math.sin(player.animTime * WALK_FPS * Math.PI) * 2 : 0;
+    const bob = player.moving
+      ? Math.round(Math.sin(player.animTime * WALK_FPS * Math.PI))
+      : 0;
 
     ctx.save();
+    ctx.imageSmoothingEnabled = false;
     if (player.facing < 0) {
       ctx.translate(player.x + player.w, player.y + bob);
       ctx.scale(-1, 1);
@@ -1618,40 +1693,40 @@ window.SpaceQuestAdventure = (() => {
     for (const enemy of enemies) {
       if (enemy.defeated) continue;
       enemy.bob += 0.04;
-      const oy = Math.sin(enemy.bob) * 3;
-      ctx.fillStyle = "rgba(0,0,0,0.25)";
-      ctx.beginPath();
-      ctx.ellipse(
-        enemy.x + enemy.w / 2,
-        enemy.y + enemy.h + 4,
-        enemy.w * 0.35,
-        6,
-        0,
-        0,
-        Math.PI * 2
+      const oy = Math.round(Math.sin(enemy.bob) * 2);
+      ctx.fillStyle = "rgba(26, 36, 56, 0.45)";
+      ctx.fillRect(
+        enemy.x + enemy.w * 0.18,
+        enemy.y + enemy.h - 4,
+        enemy.w * 0.64,
+        6
       );
-      ctx.fill();
       const img = spriteImage(enemy.sprite, enemyImage);
+      ctx.imageSmoothingEnabled = false;
       ctx.drawImage(img, enemy.x, enemy.y + oy, enemy.w, enemy.h);
     }
 
     drawPlayer();
 
-    ctx.fillStyle = "rgba(7, 12, 24, 0.55)";
-    ctx.fillRect(16, 16, 260, 36);
+    // Classic adventure room plaque
+    ctx.fillStyle = "#0a1020";
+    ctx.fillRect(16, 14, 268, 40);
     ctx.strokeStyle = room.alarm
-      ? `rgba(255, 90, 90, ${0.4 + 0.4 * (0.5 + 0.5 * Math.sin(alarmPhase))})`
-      : "rgba(62, 199, 192, 0.5)";
-    ctx.strokeRect(16.5, 16.5, 259, 35);
-    ctx.fillStyle = "#eaf2ff";
-    ctx.font = "600 16px Outfit, sans-serif";
+      ? `rgba(224, 48, 64, ${0.55 + 0.4 * (0.5 + 0.5 * Math.sin(alarmPhase))})`
+      : "#3ee0e8";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(17.5, 15.5, 265, 37);
+    ctx.fillStyle = room.alarm ? "#e03040" : "#f0f4ff";
+    ctx.font = "800 15px Outfit, sans-serif";
     const title =
       room.name.length > 22 ? `${room.name.slice(0, 20)}…` : room.name;
-    ctx.fillText(title, 28, 40);
+    ctx.fillText(title.toUpperCase(), 28, 40);
 
-    ctx.fillStyle = "rgba(234, 242, 255, 0.75)";
-    ctx.font = "500 13px Outfit, sans-serif";
-    ctx.fillText(movementHint(), 16, window.SpaceQuestRooms.HEIGHT - 18);
+    ctx.fillStyle = "#1a2438";
+    ctx.fillRect(12, window.SpaceQuestRooms.HEIGHT - 34, 280, 22);
+    ctx.fillStyle = "#c8d4e8";
+    ctx.font = "600 12px Outfit, sans-serif";
+    ctx.fillText(movementHint(), 20, window.SpaceQuestRooms.HEIGHT - 18);
   }
 
   function frame(time) {
@@ -1717,6 +1792,11 @@ window.SpaceQuestAdventure = (() => {
   async function start(options = {}) {
     canvas = options.canvas;
     ctx = canvas.getContext("2d");
+    // Crisp VGA / Sierra-style pixels
+    ctx.imageSmoothingEnabled = false;
+    if ("webkitImageSmoothingEnabled" in ctx) {
+      ctx.webkitImageSmoothingEnabled = false;
+    }
     onCombat = options.onCombat;
     onRoomChange = options.onRoomChange;
     onLockedDoor = options.onLockedDoor;
