@@ -231,6 +231,43 @@
       </div>
     </section>
 
+    <section
+      id="screen-escape"
+      class="screen escape"
+      aria-label="Escape pod"
+      hidden
+      data-active="false"
+    >
+      <div class="escape-cockpit" aria-hidden="true">
+        <div class="escape-cockpit__ceiling"></div>
+        <div class="escape-cockpit__pillar escape-cockpit__pillar--left"></div>
+        <div class="escape-cockpit__pillar escape-cockpit__pillar--right"></div>
+        <div class="escape-cockpit__console">
+          <span class="escape-cockpit__dial"></span>
+          <span class="escape-cockpit__dial"></span>
+          <span class="escape-cockpit__dial escape-cockpit__dial--warn"></span>
+        </div>
+        <div class="escape-cockpit__seat"></div>
+      </div>
+
+      <div class="escape-viewport" data-escape-viewport>
+        <canvas data-escape-stars></canvas>
+        <div class="escape-viewport__glass"></div>
+        <div class="escape-viewport__rim"></div>
+      </div>
+
+      <div class="escape-content">
+        <p class="escape-message">
+          You have successfully escaped from the space ship. But your journey
+          home remains perilous. Dangers remain on the road ahead.
+        </p>
+        <button type="button" class="begin-btn" id="escape-return-title">
+          <span class="begin-btn__label">Return to Title</span>
+          <span class="begin-btn__glow" aria-hidden="true"></span>
+        </button>
+      </div>
+    </section>
+
     <button
       type="button"
       id="inventory-btn"
@@ -280,6 +317,7 @@
     <script src="js/game/adventure.js"></script>
     <script src="js/game/combat.js"></script>
     <script src="js/game/dialog.js"></script>
+    <script src="js/game/escape.js"></script>
     <script src="js/game/app.js"></script>
   </body>
 </html>
