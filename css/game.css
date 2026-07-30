@@ -1110,10 +1110,28 @@
 }
 
 .inventory-item {
+  display: block;
+  width: 100%;
   padding: 0.75rem 0.8rem;
   border-radius: 12px;
   background: rgba(7, 12, 24, 0.55);
   border: 1px solid rgba(148, 210, 230, 0.2);
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+
+.inventory-item--usable {
+  cursor: pointer;
+  border-color: rgba(94, 224, 216, 0.45);
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.inventory-item--usable:hover,
+.inventory-item--usable:focus-visible {
+  outline: none;
+  border-color: rgba(143, 214, 255, 0.85);
+  background: rgba(20, 40, 56, 0.75);
 }
 
 .inventory-item__name {
@@ -1123,11 +1141,25 @@
   color: #fff4c8;
 }
 
+.inventory-item__use-hint {
+  margin-left: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #5ee0d8;
+}
+
 .inventory-item__desc {
   margin: 0.3rem 0 0;
   font-size: 0.9rem;
   line-height: 1.35;
   color: rgba(234, 242, 255, 0.75);
+}
+
+.battle-float--heal {
+  color: #7dffb0;
+  text-shadow: 0 2px 0 #1a5c38;
 }
 
 @keyframes inventory-rise {

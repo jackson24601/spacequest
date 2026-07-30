@@ -22,6 +22,10 @@ window.SpaceQuestPlayerState = (() => {
     return setHp(hp - Math.max(0, amount));
   }
 
+  function heal(amount) {
+    return setHp(hp + Math.max(0, amount));
+  }
+
   function healFull() {
     hp = MAX_HP;
     return hp;
@@ -31,5 +35,5 @@ window.SpaceQuestPlayerState = (() => {
     hp = MAX_HP;
   }
 
-  return { getHp, getMaxHp, setHp, applyDamage, healFull, reset };
+  return { getHp, getMaxHp, setHp, applyDamage, heal, healFull, reset };
 })();

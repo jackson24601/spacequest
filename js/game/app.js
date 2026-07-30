@@ -86,6 +86,39 @@ window.SpaceQuestApp = (() => {
     }
   }
 
+  function isCombatActive() {
+    const combat = screens?.combat;
+    return Boolean(
+      combat && !combat.hidden && combat.getAttribute("data-active") === "true"
+    );
+  }
+
+  function useMedKitFromInventory() {
+    const inventory = window.SpaceQuestInventory;
+    const medKitId = inventory.ITEM_IDS.MED_KIT;
+    if (!inventory.hasItem(medKitId)) return false;
+
+    if (isCombatActive()) {
+      showGameMessage("Use Med Kit as your combat action on your turn.");
+      return false;
+    }
+
+    const state = window.SpaceQuestPlayerState;
+    if (state.getHp() >= state.getMaxHp()) {
+      showGameMessage("You are already at full health.");
+      return false;
+    }
+
+    inventory.removeItem(medKitId);
+    const heal = inventory.MED_KIT_HEAL;
+    const hp = state.heal(heal);
+    const room = window.SpaceQuestAdventure?.getRoom?.();
+    if (room) updateAdventureHud(room);
+    showGameMessage(`Used Med Kit. Restored ${heal} HP (${hp}/${state.getMaxHp()}).`);
+    closeInventory();
+    return true;
+  }
+
   function renderInventoryPanel() {
     if (!inventoryBody) return;
     const items = window.SpaceQuestInventory.listItems();
@@ -103,17 +136,27 @@ window.SpaceQuestApp = (() => {
     }
 
     inventoryBody.innerHTML = `<ul class="inventory-list">${items
-      .map(
-        (item) => `
-      <li class="inventory-item">
-        <p class="inventory-item__name">${item.name}</p>
-        ${
-          item.description
-            ? `<p class="inventory-item__desc">${item.description}</p>`
-            : ""
-        }
-      </li>`
-      )
+      .map((item) => {
+        const usable = Boolean(item.usable);
+        const tag = usable ? "button" : "div";
+        const usableClass = usable ? " inventory-item--usable" : "";
+        const attrs = usable
+          ? ` type="button" data-use-item="${item.id}"`
+          : "";
+        return `
+      <li>
+        <${tag} class="inventory-item${usableClass}"${attrs}>
+          <p class="inventory-item__name">${item.name}${
+            usable ? ' <span class="inventory-item__use-hint">Use</span>' : ""
+          }</p>
+          ${
+            item.description
+              ? `<p class="inventory-item__desc">${item.description}</p>`
+              : ""
+          }
+        </${tag}>
+      </li>`;
+      })
       .join("")}</ul>`;
   }
 
@@ -174,6 +217,15 @@ window.SpaceQuestApp = (() => {
         el.addEventListener("click", () => closeInventory());
       });
 
+    inventoryBody?.addEventListener("click", (event) => {
+      const btn = event.target.closest("[data-use-item]");
+      if (!btn) return;
+      const itemId = btn.getAttribute("data-use-item");
+      if (itemId === window.SpaceQuestInventory.ITEM_IDS.MED_KIT) {
+        useMedKitFromInventory();
+      }
+    });
+
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && inventoryOpen) {
         closeInventory();
@@ -200,26 +252,39 @@ window.SpaceQuestApp = (() => {
     if (choice === "yes") {
       adventure.markCorpseSearched();
       const isLevelTwo = defeatedEnemy?.type === "alien-l2";
+      let foundSomething = false;
 
       if (isLevelTwo) {
         if (inventory.rollLockerKeyFind()) {
           inventory.addKey(inventory.KEY_IDS.LODGING_LOCKER);
+          foundSomething = true;
           await window.SpaceQuestDialog.notice(
             "You have found a key to the Lodging foot locker!"
           );
           const room = adventure.getRoom();
           if (room) updateAdventureHud(room);
-        } else {
-          showGameMessage("You find nothing useful.");
         }
       } else if (inventory.rollKeyCardFind()) {
         inventory.addKey(inventory.KEY_IDS.ENGINE_ROOM);
+        foundSomething = true;
         await window.SpaceQuestDialog.notice(
           "You have found a key card to the Engine Room!"
         );
         const room = adventure.getRoom();
         if (room) updateAdventureHud(room);
-      } else {
+      }
+
+      // Independent 50% Med Kit roll on every alien search
+      if (
+        inventory.rollMedKitFind() &&
+        !inventory.hasItem(inventory.ITEM_IDS.MED_KIT)
+      ) {
+        inventory.addItem(inventory.ITEM_IDS.MED_KIT);
+        foundSomething = true;
+        await window.SpaceQuestDialog.notice("You have found a Med Kit!");
+      }
+
+      if (!foundSomething) {
         showGameMessage("You find nothing useful.");
       }
     }
