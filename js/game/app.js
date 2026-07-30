@@ -242,6 +242,17 @@ window.SpaceQuestApp = (() => {
     adventure.setPaused(false);
   }
 
+  async function handleLockerOpened(info) {
+    const adventure = window.SpaceQuestAdventure;
+    adventure.setPaused(true);
+    await window.SpaceQuestDialog.notice(
+      info?.message || "You open the locker and find something useful."
+    );
+    const room = adventure.getRoom();
+    if (room) updateAdventureHud(room);
+    adventure.setPaused(false);
+  }
+
   async function startAdventure(options = {}) {
     show("adventure");
     await window.SpaceQuestAdventure.start({
@@ -270,6 +281,10 @@ window.SpaceQuestApp = (() => {
       onInteract: (info) => {
         if (info?.type === "dialogue" && info.message) {
           handleCrewmateDialogue(info);
+          return;
+        }
+        if (info?.type === "opened" && info.itemId) {
+          handleLockerOpened(info);
           return;
         }
         if (info?.message) {

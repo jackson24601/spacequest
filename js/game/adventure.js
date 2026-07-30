@@ -1176,7 +1176,11 @@ window.SpaceQuestAdventure = (() => {
     if (!prop) return false;
     if (prop.autoTalk) return false;
     if (isPickupAvailable(prop)) return true;
-    if (prop.requiresKeyId && prop.id) return true;
+    if (prop.requiresKeyId && prop.id) {
+      // Already opened/looted — no further interaction
+      if (window.SpaceQuestInventory.hasTakenWorldPickup(prop.id)) return false;
+      return true;
+    }
     if (prop.interactLabel && prop.id && !prop.itemId) return true;
     return false;
   }
@@ -1224,6 +1228,7 @@ window.SpaceQuestAdventure = (() => {
 
     // Locked container (e.g. Lodging foot locker)
     if (prop.requiresKeyId) {
+      if (inv.hasTakenWorldPickup(prop.id)) return false;
       if (!inv.hasKey(prop.requiresKeyId)) {
         if (typeof onInteract === "function") {
           onInteract({
@@ -1234,11 +1239,23 @@ window.SpaceQuestAdventure = (() => {
         }
         return true;
       }
+
+      // One-time open: mark looted and grant contents
+      inv.takeWorldPickup(prop.id);
+      if (prop.containsItemId) {
+        inv.addItem(prop.containsItemId);
+      }
+      hideInteractPrompt();
       if (typeof onInteract === "function") {
         onInteract({
           type: "opened",
           id: prop.id,
-          message: prop.openMessage || "The locker opens.",
+          itemId: prop.containsItemId || null,
+          message:
+            prop.openMessage ||
+            (prop.containsItemId
+              ? "You open the locker and find something useful."
+              : "The locker opens."),
         });
       }
       return true;
