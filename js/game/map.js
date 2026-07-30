@@ -206,7 +206,7 @@ window.SpaceQuestMap = (() => {
         { type: "vent", x: 180, y: 175, w: 48, h: 36 },
         { type: "vent", x: 732, y: 175, w: 48, h: 36 },
         { type: "vent", x: 400, y: 178, w: 56, h: 32 },
-        { type: "droid", x: 520, y: 152, w: 36, h: 36 }
+        { type: "droid", x: 500, y: 168, w: 40, h: 40 }
       );
     } else {
       // Plus-shaped corridor with door gaps on connected sides
