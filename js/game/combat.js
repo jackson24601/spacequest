@@ -151,8 +151,9 @@ window.SpaceQuestCombat = (() => {
     const selected =
       side === "enemy" && unit.id === selectedEnemyId && unit.hp > 0;
     const dead = unit.hp <= 0;
+    const boss = side === "enemy" && unit.type === "alien-boss";
     return `
-      <div class="battle-unit battle-unit--${side}${selected ? " is-selected" : ""}${dead ? " is-down" : ""}" data-unit-id="${unit.id}">
+      <div class="battle-unit battle-unit--${side}${boss ? " battle-unit--boss" : ""}${selected ? " is-selected" : ""}${dead ? " is-down" : ""}" data-unit-id="${unit.id}">
         <div class="battle-hp">
           <div class="battle-hp__bar">
             <div class="battle-hp__fill" style="width:${hpPercent(unit)}%"></div>
@@ -403,9 +404,12 @@ window.SpaceQuestCombat = (() => {
     if (result === "win") {
       const onWin = handlers.onWin;
       const many = enemyUnits.length > 1;
-      resultTextEl.textContent = many
-        ? "Victory! The aliens collapse."
-        : "Victory! The alien collapses.";
+      const boss = enemyUnits.some((e) => e.type === "alien-boss");
+      resultTextEl.textContent = boss
+        ? "Victory! The boss alien collapses."
+        : many
+          ? "Victory! The aliens collapse."
+          : "Victory! The alien collapses.";
       log("You won the battle.");
       handlers.outcome = () => {
         if (typeof onWin === "function") onWin();

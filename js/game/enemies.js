@@ -30,6 +30,21 @@ window.SpaceQuestEnemies = (() => {
     h: 91,
   };
 
+  // Twice the Level 1 footprint — larger than every other alien
+  const BOSS_ALIEN = {
+    type: "alien-boss",
+    name: "Boss Alien",
+    sprite: "assets/sprites/alien-l2.png",
+    deadSprite: "assets/sprites/alien-l2-dead.png",
+    hp: 50,
+    maxHp: 50,
+    attackDamage: 5,
+    hitChance: 1,
+    speed: 110,
+    w: LEVEL_ONE_ALIEN.w * 2,
+    h: LEVEL_ONE_ALIEN.h * 2,
+  };
+
   function createLevelOneAlien(overrides = {}) {
     return {
       ...LEVEL_ONE_ALIEN,
@@ -50,10 +65,22 @@ window.SpaceQuestEnemies = (() => {
     };
   }
 
+  function createBossAlien(overrides = {}) {
+    return {
+      ...BOSS_ALIEN,
+      id: overrides.id || `alien-boss-${Date.now()}`,
+      defeated: false,
+      bob: Math.random() * Math.PI * 2,
+      ...overrides,
+    };
+  }
+
   return {
     LEVEL_ONE_ALIEN,
     LEVEL_TWO_ALIEN,
+    BOSS_ALIEN,
     createLevelOneAlien,
     createLevelTwoAlien,
+    createBossAlien,
   };
 })();

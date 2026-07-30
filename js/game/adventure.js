@@ -10,6 +10,7 @@ window.SpaceQuestAdventure = (() => {
   const ALIEN_L2_SPAWN_DELAY = 2;
   const ALIEN_L2_SPAWN_CHANCE = 2 / 3;
   const INFIRMARY_AMBUSH_ID = "infirmary-ambush";
+  const MISSION_CONTROL_BOSS_ID = "mission-control-boss";
 
   let canvas;
   let ctx;
@@ -257,6 +258,29 @@ window.SpaceQuestAdventure = (() => {
     });
   }
 
+  function spawnMissionControlBoss() {
+    if (room?.specialType !== "mission-control") return;
+    if (
+      window.SpaceQuestInventory.hasTakenWorldPickup(MISSION_CONTROL_BOSS_ID)
+    ) {
+      return;
+    }
+
+    const catalog = window.SpaceQuestRooms;
+    const template = window.SpaceQuestEnemies.BOSS_ALIEN;
+    const x = Math.round((catalog.WIDTH - template.w) / 2);
+    const y = Math.round((catalog.HEIGHT - template.h) / 2) - 10;
+    enemies = [
+      window.SpaceQuestEnemies.createBossAlien({
+        id: "mission-control-boss-alien",
+        name: "Boss Alien",
+        combatOrder: 1,
+        x,
+        y,
+      }),
+    ];
+  }
+
   function tryMoveEnemy(enemy, dx, dy) {
     if (dx !== 0) {
       const next = enemyBox(enemy, enemy.x + dx, enemy.y);
@@ -328,7 +352,13 @@ window.SpaceQuestAdventure = (() => {
     const center = defaultSpawn();
     const axes = room.movement?.axes || "horizontal";
     // Junctions / door-hallways keep the player in the open cross lane
-    const sideMargin = axes === "both" ? 390 : 36;
+    let sideMargin = axes === "both" ? 390 : 36;
+    // Special rooms spawn just inside the entry door (clear of side consoles)
+    if (room.specialType === "mission-control") {
+      sideMargin = 200;
+    } else if (room.specialType === "escape-pod") {
+      sideMargin = 56;
+    }
     const endMargin = 48;
 
     if (!entryDir) return center;
@@ -370,14 +400,21 @@ window.SpaceQuestAdventure = (() => {
     if (!suppressAlienSpawn) {
       scheduleHallwayAlienSpawn();
     }
-    // Infirmary ambush is room-scripted (not a hallway roll). Still honor
-    // post-combat suppress so aliens don't pop back in the same return.
+    // Room-scripted encounters (not hallway rolls). Honor post-combat suppress
+    // so enemies don't pop back in on the immediate return.
     if (
       room.specialType === "infirmary" &&
       !suppressAlienSpawn &&
       !window.SpaceQuestInventory.hasTakenWorldPickup(INFIRMARY_AMBUSH_ID)
     ) {
       spawnInfirmaryAmbush();
+    }
+    if (
+      room.specialType === "mission-control" &&
+      !suppressAlienSpawn &&
+      !window.SpaceQuestInventory.hasTakenWorldPickup(MISSION_CONTROL_BOSS_ID)
+    ) {
+      spawnMissionControlBoss();
     }
     suppressAlienSpawn = false;
   }
@@ -430,6 +467,11 @@ window.SpaceQuestAdventure = (() => {
   function canEnter(roomId) {
     const target = window.SpaceQuestRooms.rooms[roomId];
     if (!target) return false;
+    if (target.requiresClearId) {
+      return window.SpaceQuestInventory.hasTakenWorldPickup(
+        target.requiresClearId
+      );
+    }
     if (!target.locked) return true;
     return window.SpaceQuestInventory.hasKey(target.keyId);
   }
@@ -465,13 +507,16 @@ window.SpaceQuestAdventure = (() => {
 
   function placeCorpseNearPlayer(enemyLike = {}) {
     const catalog = window.SpaceQuestRooms;
+    const isBoss = enemyLike.type === "alien-boss";
     const isL2 = enemyLike.type === "alien-l2";
-    const template = isL2
-      ? window.SpaceQuestEnemies?.LEVEL_TWO_ALIEN || {}
-      : window.SpaceQuestEnemies?.LEVEL_ONE_ALIEN || {};
+    const template = isBoss
+      ? window.SpaceQuestEnemies?.BOSS_ALIEN || {}
+      : isL2
+        ? window.SpaceQuestEnemies?.LEVEL_TWO_ALIEN || {}
+        : window.SpaceQuestEnemies?.LEVEL_ONE_ALIEN || {};
     // Dedicated horizontal dead sprite — scale up for hallway readability
-    const drawW = isL2 ? 140 : 120;
-    const drawH = isL2 ? 76 : 66;
+    const drawW = isBoss ? 180 : isL2 ? 140 : 120;
+    const drawH = isBoss ? 96 : isL2 ? 76 : 66;
     const facing = player?.facing >= 0 ? 1 : -1;
     let x =
       facing >= 0
@@ -517,10 +562,14 @@ window.SpaceQuestAdventure = (() => {
       lockedDoorCooldown = 1.1;
       bounceFromDir(fromDir);
       if (typeof onLockedDoor === "function") {
+        const target = window.SpaceQuestRooms.rooms[roomId];
+        const message = target?.requiresClearId
+          ? "The Escape Pod is sealed. Defeat the alien first!"
+          : "This door is locked and you do not have the key.";
         onLockedDoor({
-          message: "This door is locked and you do not have the key.",
+          message,
           roomId,
-          roomName: window.SpaceQuestRooms.rooms[roomId]?.name || "Door",
+          roomName: target?.name || "Door",
         });
       }
     }
@@ -965,6 +1014,119 @@ window.SpaceQuestAdventure = (() => {
           ctx.strokeStyle = "rgba(20, 40, 60, 0.45)";
           ctx.strokeRect(prop.x + 0.5, prop.y + 6.5, prop.w - 1, prop.h - 11);
         }
+      } else if (prop.type === "holo-screen") {
+        ctx.fillStyle = "#0a1420";
+        ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
+        ctx.fillStyle = "rgba(79, 208, 255, 0.18)";
+        ctx.fillRect(prop.x + 8, prop.y + 8, prop.w - 16, prop.h - 16);
+        ctx.strokeStyle = `rgba(79, 208, 255, ${0.35 + pulse * 0.4})`;
+        ctx.strokeRect(prop.x + 8.5, prop.y + 8.5, prop.w - 17, prop.h - 17);
+        ctx.fillStyle = `rgba(79, 208, 255, ${0.55 + pulse * 0.35})`;
+        ctx.font = "600 14px Outfit, sans-serif";
+        ctx.fillText("SECTOR STATUS — CRITICAL", prop.x + 24, prop.y + 36);
+        ctx.fillStyle = "rgba(255, 90, 90, 0.85)";
+        ctx.fillText("CREW SIGNAL: LOST", prop.x + 24, prop.y + 58);
+      } else if (prop.type === "command-chair") {
+        ctx.fillStyle = "#1a2434";
+        ctx.fillRect(prop.x + 16, prop.y + 30, prop.w - 32, prop.h - 30);
+        ctx.fillStyle = "#2c3a52";
+        ctx.fillRect(prop.x + 10, prop.y + 10, prop.w - 20, 28);
+        ctx.fillStyle = "#4fd0ff";
+        ctx.globalAlpha = 0.35;
+        ctx.fillRect(prop.x + 22, prop.y + 16, prop.w - 44, 10);
+        ctx.globalAlpha = 1;
+      } else if (prop.type === "floor-ring") {
+        ctx.strokeStyle = "rgba(79, 208, 255, 0.28)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.ellipse(
+          prop.x + prop.w / 2,
+          prop.y + prop.h / 2,
+          prop.w / 2,
+          prop.h / 2,
+          0,
+          0,
+          Math.PI * 2
+        );
+        ctx.stroke();
+        ctx.strokeStyle = "rgba(224, 178, 69, 0.2)";
+        ctx.beginPath();
+        ctx.ellipse(
+          prop.x + prop.w / 2,
+          prop.y + prop.h / 2,
+          prop.w / 2 - 16,
+          prop.h / 2 - 12,
+          0,
+          0,
+          Math.PI * 2
+        );
+        ctx.stroke();
+        ctx.lineWidth = 1;
+      } else if (prop.type === "pod-bay") {
+        ctx.fillStyle = "#132430";
+        ctx.fillRect(prop.x, prop.y, prop.w, prop.h);
+        ctx.strokeStyle = "rgba(94, 224, 216, 0.45)";
+        ctx.strokeRect(prop.x + 0.5, prop.y + 0.5, prop.w - 1, prop.h - 1);
+        ctx.fillStyle = "rgba(94, 224, 216, 0.12)";
+        ctx.beginPath();
+        ctx.ellipse(
+          prop.x + prop.w / 2,
+          prop.y + prop.h / 2,
+          prop.w * 0.32,
+          prop.h * 0.38,
+          0,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+        ctx.strokeStyle = "rgba(94, 224, 216, 0.55)";
+        ctx.stroke();
+      } else if (prop.type === "dead-astronaut") {
+        const facing = prop.facing >= 0 ? 1 : -1;
+        const cx = prop.x + prop.w / 2;
+        const cy = prop.y + prop.h / 2;
+        // Blood pool
+        ctx.fillStyle = "rgba(120, 18, 28, 0.55)";
+        ctx.beginPath();
+        ctx.ellipse(cx, prop.y + prop.h - 4, prop.w * 0.55, 14, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "rgba(160, 30, 40, 0.4)";
+        ctx.beginPath();
+        ctx.ellipse(
+          cx + facing * 10,
+          prop.y + prop.h - 2,
+          prop.w * 0.35,
+          9,
+          0.2,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+        // Body
+        ctx.save();
+        if (facing < 0) {
+          ctx.translate(cx, cy);
+          ctx.scale(-1, 1);
+          ctx.translate(-cx, -cy);
+        }
+        ctx.fillStyle = "#c5ccd8";
+        ctx.fillRect(prop.x + 16, prop.y + 14, prop.w - 28, 18);
+        ctx.fillStyle = "#7b8799";
+        ctx.fillRect(prop.x + 16, prop.y + 26, prop.w - 28, 8);
+        ctx.fillStyle = "#2c3a52";
+        ctx.fillRect(prop.x + prop.w - 18, prop.y + 16, 12, 16);
+        ctx.fillStyle = "#e8b896";
+        ctx.fillRect(prop.x + 4, prop.y + 12, 14, 14);
+        ctx.fillStyle = "#d8e2f0";
+        ctx.beginPath();
+        ctx.arc(prop.x + 11, prop.y + 10, 9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,0.25)";
+        ctx.stroke();
+        // Visor crack / dark
+        ctx.fillStyle = "rgba(20, 30, 40, 0.75)";
+        ctx.fillRect(prop.x + 7, prop.y + 7, 8, 5);
+        ctx.restore();
       } else if (prop.type === "wounded-crewmate") {
         const taken = window.SpaceQuestInventory.hasTakenWorldPickup(prop.id);
         const fade = propFades.get(prop.id);
