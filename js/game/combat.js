@@ -23,6 +23,7 @@ window.SpaceQuestCombat = (() => {
   let throwCoffeeBtn;
   let fireBlasterBtn;
   let firePlasmaBtn;
+  let useMedKitBtn;
 
   let encounter = null;
   let handlers = {};
@@ -44,6 +45,7 @@ window.SpaceQuestCombat = (() => {
     throwCoffeeBtn = root.querySelector('[data-action="throw-coffee"]');
     fireBlasterBtn = root.querySelector('[data-action="fire-blaster"]');
     firePlasmaBtn = root.querySelector('[data-action="fire-plasma-riffle"]');
+    useMedKitBtn = root.querySelector('[data-action="use-med-kit"]');
 
     actionsEl?.addEventListener("click", (event) => {
       const btn = event.target.closest("[data-action]");
@@ -58,6 +60,8 @@ window.SpaceQuestCombat = (() => {
       } else if (action === "fire-plasma-riffle") {
         // Gated in syncItemActions — only usable with a cartridge
         firePlasmaRiffle();
+      } else if (action === "use-med-kit") {
+        useMedKit();
       }
     });
 
@@ -96,6 +100,12 @@ window.SpaceQuestCombat = (() => {
     );
   }
 
+  function hasMedKit() {
+    return window.SpaceQuestInventory.hasItem(
+      window.SpaceQuestInventory.ITEM_IDS.MED_KIT
+    );
+  }
+
   function syncItemActions() {
     if (throwCoffeeBtn) {
       throwCoffeeBtn.hidden = !hasCoffee();
@@ -107,6 +117,9 @@ window.SpaceQuestCombat = (() => {
       // Rifle alone is not enough — needs ammunition cartridge
       firePlasmaBtn.hidden = !window.SpaceQuestInventory.canUsePlasmaRiffle();
     }
+    if (useMedKitBtn) {
+      useMedKitBtn.hidden = !hasMedKit();
+    }
   }
 
   function turnPrompt() {
@@ -116,6 +129,7 @@ window.SpaceQuestCombat = (() => {
     if (window.SpaceQuestInventory.canUsePlasmaRiffle()) {
       options.push("Fire Plasma Riffle");
     }
+    if (hasMedKit()) options.push("Use Med Kit");
     if (options.length <= 2) {
       return "Your turn. Choose Punch or Kick.";
     }
@@ -300,6 +314,34 @@ window.SpaceQuestCombat = (() => {
       syncItemActions();
       return;
     }
+  }
+
+  async function useMedKit() {
+    const inv = window.SpaceQuestInventory;
+    const medKitId = inv.ITEM_IDS.MED_KIT;
+    if (!inv.hasItem(medKitId)) {
+      syncItemActions();
+      return;
+    }
+
+    // Using a Med Kit spends the whole turn — no attack this round
+    busy = true;
+    setActionsEnabled(false);
+    turn = "enemy";
+
+    inv.removeItem(medKitId);
+    syncItemActions();
+
+    const heal = inv.MED_KIT_HEAL;
+    const hp = window.SpaceQuestPlayerState.heal(heal);
+    playerUnit.hp = hp;
+    playerUnit.maxHp = window.SpaceQuestPlayerState.getMaxHp();
+    renderUnits();
+    floatDamage(playerUnit.id, `+${heal}`, "heal");
+    log(`You use a Med Kit and restore ${heal} HP.`);
+
+    await wait(650);
+    await enemyPhase();
   }
 
   async function enemyPhase() {

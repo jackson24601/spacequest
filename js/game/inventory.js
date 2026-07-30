@@ -14,6 +14,7 @@ window.SpaceQuestInventory = (() => {
     BLASTER: "blaster",
     PLASMA_RIFFLE: "plasma-riffle",
     PLASMA_CARTRIDGE: "plasma-cartridge",
+    MED_KIT: "med-kit",
     ...KEY_IDS,
   };
 
@@ -39,6 +40,12 @@ window.SpaceQuestInventory = (() => {
       name: "Plasma Cartridge",
       description: "Ammunition for the Plasma Riffle.",
     },
+    [ITEM_IDS.MED_KIT]: {
+      id: ITEM_IDS.MED_KIT,
+      name: "Med Kit",
+      description: "Restores 10 HP. Click to use, or spend your combat turn.",
+      usable: true,
+    },
     [KEY_IDS.ENGINE_ROOM]: {
       id: KEY_IDS.ENGINE_ROOM,
       name: "Engine Room Key Card",
@@ -63,6 +70,8 @@ window.SpaceQuestInventory = (() => {
 
   const KEY_CARD_FIND_CHANCE = 1 / 5;
   const LOCKER_KEY_FIND_CHANCE = 1 / 4;
+  const MED_KIT_FIND_CHANCE = 1 / 2;
+  const MED_KIT_HEAL = 10;
 
   const items = new Set();
   const takenWorldPickups = new Set();
@@ -159,6 +168,10 @@ window.SpaceQuestInventory = (() => {
     return Math.random() < LOCKER_KEY_FIND_CHANCE;
   }
 
+  function rollMedKitFind() {
+    return Math.random() < MED_KIT_FIND_CHANCE;
+  }
+
   function canUsePlasmaRiffle() {
     return hasItem(ITEM_IDS.PLASMA_RIFFLE) && hasItem(ITEM_IDS.PLASMA_CARTRIDGE);
   }
@@ -169,6 +182,8 @@ window.SpaceQuestInventory = (() => {
     ITEM_DEFS,
     KEY_CARD_FIND_CHANCE,
     LOCKER_KEY_FIND_CHANCE,
+    MED_KIT_FIND_CHANCE,
+    MED_KIT_HEAL,
     hasKey,
     hasItem,
     addKey,
@@ -183,6 +198,7 @@ window.SpaceQuestInventory = (() => {
     reset,
     rollKeyCardFind,
     rollLockerKeyFind,
+    rollMedKitFind,
     canUsePlasmaRiffle,
     onChange,
   };
