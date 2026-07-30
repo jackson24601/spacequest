@@ -99,15 +99,37 @@ window.SpaceQuestCombat = (() => {
     );
   }
 
+  function hasBlaster() {
+    return window.SpaceQuestInventory.hasItem(
+      window.SpaceQuestInventory.ITEM_IDS.BLASTER
+    );
+  }
+
   function syncItemActions() {
-    if (!throwCoffeeBtn) return;
-    throwCoffeeBtn.hidden = !hasCoffee();
+    if (throwCoffeeBtn) {
+      throwCoffeeBtn.hidden = !hasCoffee();
+    }
+    if (fireBlasterBtn) {
+      fireBlasterBtn.hidden = !hasBlaster();
+    }
+    if (firePlasmaBtn) {
+      // Rifle alone is not enough — needs ammunition cartridge
+      firePlasmaBtn.hidden = !window.SpaceQuestInventory.canUsePlasmaRiffle();
+    }
   }
 
   function turnPrompt() {
-    return hasCoffee()
-      ? "Your turn. Choose Punch, Kick, or Throw Coffee."
-      : "Your turn. Choose Punch or Kick.";
+    const options = ["Punch", "Kick"];
+    if (hasCoffee()) options.push("Throw Coffee");
+    if (hasBlaster()) options.push("Fire Blaster");
+    if (window.SpaceQuestInventory.canUsePlasmaRiffle()) {
+      options.push("Fire Plasma Riffle");
+    }
+    if (options.length <= 2) {
+      return "Your turn. Choose Punch or Kick.";
+    }
+    const last = options.pop();
+    return `Your turn. Choose ${options.join(", ")}, or ${last}.`;
   }
 
   function setActionsEnabled(enabled) {
@@ -242,6 +264,49 @@ window.SpaceQuestCombat = (() => {
     }
 
     await enemyPhase();
+  }
+
+  async function fireBlaster() {
+    const target = getSelectedEnemy();
+    if (!target) return;
+    if (!hasBlaster()) {
+      syncItemActions();
+      return;
+    }
+
+    busy = true;
+    setActionsEnabled(false);
+    turn = "enemy";
+
+    const hit = rollHit(BLASTER_HIT_CHANCE);
+    if (hit) {
+      target.hp = Math.max(0, target.hp - BLASTER_DAMAGE);
+      renderUnits();
+      floatDamage(target.id, `-${BLASTER_DAMAGE}`, "hit");
+      log(
+        `You fire the blaster at the ${target.name} for ${BLASTER_DAMAGE} damage!`
+      );
+    } else {
+      floatDamage(target.id, "Miss", "miss");
+      log(`Your blaster shot misses the ${target.name}.`);
+    }
+
+    await wait(650);
+
+    if (livingEnemies().length === 0) {
+      finish("win");
+      return;
+    }
+
+    await enemyPhase();
+  }
+
+  async function firePlasmaRiffle() {
+    // Reserved until a cartridge is found; button stays hidden without one
+    if (!window.SpaceQuestInventory.canUsePlasmaRiffle()) {
+      syncItemActions();
+      return;
+    }
   }
 
   async function enemyPhase() {
