@@ -375,6 +375,9 @@ window.SpaceQuestMap = (() => {
           interactLabel: "Open Locker",
           requiresKeyId: "lodging-locker-key",
           lockedMessage: "The locker needs a key.",
+          containsItemId: "infirmary-key",
+          openMessage:
+            "You open the foot locker and find a key card to the Infirmary!",
           x: 400,
           y: 415,
           w: 160,
