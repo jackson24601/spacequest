@@ -83,14 +83,25 @@ window.SpaceQuestMap = (() => {
 
   const CONNECTED = new Set(["Hallway", "Starting Scene", ...Object.keys(SPECIAL)]);
 
+  // Classic Sierra / VGA adventure ship palette
   const PALETTE = {
-    floor: "#5c5868",
-    wall: "#2a3d5c",
-    wallDark: "#162338",
-    accent: "#3ec7c0",
-    accentWarm: "#e0b245",
-    metal: "#8fa0b8",
-    alarm: "#ff4d4d",
+    floor: "#9aa6c8",
+    floorDark: "#7a86a8",
+    floorLight: "#b8c2de",
+    wall: "#7eb0d8",
+    wallMid: "#5a92c0",
+    wallDark: "#3a6a98",
+    wallDeep: "#2a4a70",
+    panel: "#8ec4e8",
+    panelEdge: "#2a4060",
+    accent: "#3ee0e8",
+    accentWarm: "#f0c040",
+    metal: "#c8d4e8",
+    alarm: "#e03040",
+    hazardYellow: "#f0d030",
+    hazardBlack: "#1a1a24",
+    redBand: "#d02038",
+    ink: "#1a2438",
   };
 
   function cellId(row, col) {
@@ -173,12 +184,14 @@ window.SpaceQuestMap = (() => {
         { x: 740, y: 0, w: 220, h: HEIGHT }
       );
       props.push(
-        { type: "panel", x: 246, y: 90, w: 64, h: 96 },
-        { type: "panel", x: 650, y: 90, w: 64, h: 96 },
-        { type: "panel", x: 246, y: 340, w: 64, h: 96 },
-        { type: "panel", x: 650, y: 340, w: 64, h: 96 },
-        { type: "stripe", x: 220, y: 160, w: 10, h: 220 },
-        { type: "stripe", x: 730, y: 160, w: 10, h: 220 }
+        { type: "panel", x: 246, y: 90, w: 78, h: 100 },
+        { type: "panel", x: 636, y: 90, w: 78, h: 100 },
+        { type: "panel", x: 246, y: 340, w: 78, h: 100 },
+        { type: "panel", x: 636, y: 340, w: 78, h: 100 },
+        { type: "vent", x: 232, y: 200, w: 40, h: 56 },
+        { type: "vent", x: 688, y: 200, w: 40, h: 56 },
+        { type: "vent", x: 232, y: 290, w: 40, h: 40 },
+        { type: "vent", x: 688, y: 290, w: 40, h: 40 }
       );
     } else if (axes === "horizontal") {
       solids.push(
@@ -186,12 +199,14 @@ window.SpaceQuestMap = (() => {
         { x: 0, y: 390, w: WIDTH, h: 150 }
       );
       props.push(
-        { type: "panel", x: 90, y: 168, w: 64, h: 96 },
-        { type: "panel", x: 806, y: 168, w: 64, h: 96 },
-        { type: "panel", x: 280, y: 168, w: 54, h: 80 },
-        { type: "panel", x: 626, y: 168, w: 54, h: 80 },
-        { type: "stripe", x: 0, y: 318, w: WIDTH, h: 10 },
-        { type: "stripe", x: 0, y: 212, w: WIDTH, h: 8 }
+        { type: "panel", x: 80, y: 162, w: 86, h: 100 },
+        { type: "panel", x: 794, y: 162, w: 86, h: 100 },
+        { type: "panel", x: 270, y: 168, w: 78, h: 92 },
+        { type: "panel", x: 612, y: 168, w: 78, h: 92 },
+        { type: "vent", x: 180, y: 175, w: 48, h: 36 },
+        { type: "vent", x: 732, y: 175, w: 48, h: 36 },
+        { type: "vent", x: 400, y: 178, w: 56, h: 32 },
+        { type: "droid", x: 500, y: 168, w: 40, h: 40 }
       );
     } else {
       // Plus-shaped corridor with door gaps on connected sides
@@ -235,10 +250,12 @@ window.SpaceQuestMap = (() => {
       }
 
       props.push(
-        { type: "panel", x: 210, y: 150, w: 54, h: 80 },
-        { type: "panel", x: 696, y: 150, w: 54, h: 80 },
-        { type: "stripe", x: 0, y: 250, w: WIDTH, h: 8 },
-        { type: "stripe", x: 476, y: 0, w: 8, h: HEIGHT }
+        { type: "panel", x: 200, y: 145, w: 78, h: 92 },
+        { type: "panel", x: 682, y: 145, w: 78, h: 92 },
+        { type: "vent", x: 300, y: 155, w: 48, h: 32 },
+        { type: "vent", x: 612, y: 155, w: 48, h: 32 },
+        { type: "vent", x: 220, y: 300, w: 36, h: 48 },
+        { type: "vent", x: 704, y: 300, w: 36, h: 48 }
       );
     }
 
@@ -618,25 +635,38 @@ window.SpaceQuestMap = (() => {
 
         const palette = { ...PALETTE };
         if (special?.id === "infirmary") {
-          palette.floor = "#4d6a78";
-          palette.wall = "#1a3d4d";
-          palette.wallDark = "#0d2430";
+          palette.wall = "#6aa8c8";
+          palette.wallMid = "#4a88a8";
+          palette.wallDark = "#2a6078";
+          palette.panel = "#7ec0d8";
+          palette.floor = "#8aa8b8";
+          palette.floorDark = "#6a8898";
           palette.accent = "#5ee0d8";
-          palette.accentWarm = "#8fd6ff";
-          palette.metal = "#a8c4d4";
+          palette.redBand = "#c02840";
         } else if (special?.id === "mission-control") {
-          palette.floor = "#3a4558";
-          palette.wall = "#1a2740";
-          palette.wallDark = "#0c1628";
-          palette.accent = "#4fd0ff";
-          palette.accentWarm = "#e0b245";
-          palette.metal = "#9eb0c8";
-          palette.alarm = "#ff4d4d";
+          palette.wall = "#6898c8";
+          palette.wallMid = "#4878a8";
+          palette.wallDark = "#285888";
+          palette.panel = "#80b0e0";
+          palette.floor = "#8898b8";
+          palette.accent = "#40d0f0";
+          palette.redBand = "#e02840";
         } else if (special?.id === "escape-pod") {
-          palette.floor = "#2f3d4a";
-          palette.wall = "#173040";
-          palette.wallDark = "#0a1a24";
-          palette.accent = "#5ee0d8";
+          palette.wall = "#5a98b0";
+          palette.wallMid = "#3a7890";
+          palette.wallDark = "#245868";
+          palette.panel = "#70b8c8";
+          palette.floor = "#7a98a8";
+          palette.accent = "#50e0d0";
+        } else if (special?.id === "engine-room") {
+          palette.wall = "#7088a8";
+          palette.wallMid = "#506888";
+          palette.wallDark = "#304868";
+          palette.panel = "#88a0b8";
+          palette.floor = "#908878";
+          palette.floorDark = "#706858";
+          palette.accentWarm = "#f0a020";
+          palette.redBand = "#c04020";
         }
 
         rooms[id] = {

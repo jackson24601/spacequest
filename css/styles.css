@@ -15,15 +15,17 @@
 }
 
 :root {
-  --void: #050814;
-  --deep: #0a1630;
-  --nebula-teal: #1ec8c0;
-  --nebula-cyan: #5eead4;
-  --nebula-gold: #f0c75e;
+  --void: #081018;
+  --deep: #122848;
+  --nebula-teal: #3ee0e8;
+  --nebula-cyan: #8ec4e8;
+  --nebula-gold: #f0d030;
   --star: #eaf2ff;
   --foam: #f7fbff;
-  --btn: #ffd56a;
+  --btn: #f0d030;
   --btn-ink: #1a1408;
+  --sq-wall: #7eb0d8;
+  --sq-red: #d02038;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
