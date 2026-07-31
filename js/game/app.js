@@ -11,14 +11,19 @@ window.SpaceQuestApp = (() => {
 
   function show(screenName) {
     closeInventory();
+    if (screenName !== "escape") {
+      window.SpaceQuestEscape?.stop?.();
+    }
     Object.entries(screens).forEach(([name, el]) => {
       if (!el) return;
       el.hidden = name !== screenName;
       el.setAttribute("aria-hidden", name !== screenName ? "true" : "false");
     });
-    // Inventory stays available during the quest, not title / game over
+    // Inventory stays available during the quest, not title / endings
     setInventoryChromeVisible(
-      screenName !== "landing" && screenName !== "gameover"
+      screenName !== "landing" &&
+        screenName !== "gameover" &&
+        screenName !== "escape"
     );
   }
 
@@ -71,7 +76,7 @@ window.SpaceQuestApp = (() => {
             "<strong>Tip:</strong> Survive the boss — Escape Pod is sealed until then";
         } else if (room.specialType === "escape-pod") {
           tip.innerHTML =
-            "<strong>Tip:</strong> Escape pod bay — exit down to Mission Control";
+            "<strong>Tip:</strong> Climb into the escape pod to leave the ship";
         } else {
           tip.innerHTML =
             "<strong>Tip:</strong> Explore, then leave through the door";
@@ -330,6 +335,15 @@ window.SpaceQuestApp = (() => {
     adventure.setPaused(false);
   }
 
+  function showEscapeEnding() {
+    window.SpaceQuestDialog.hide();
+    window.SpaceQuestCombat.close();
+    window.SpaceQuestAdventure.stop();
+    closeInventory();
+    show("escape");
+    window.SpaceQuestEscape.start();
+  }
+
   async function startAdventure(options = {}) {
     show("adventure");
     await window.SpaceQuestAdventure.start({
@@ -338,7 +352,13 @@ window.SpaceQuestApp = (() => {
       resumePosition: options.resumePosition,
       defeatedEnemyId: options.defeatedEnemyId,
       placeCorpse: options.placeCorpse,
-      onRoomChange: updateAdventureHud,
+      onRoomChange: (room) => {
+        updateAdventureHud(room);
+        if (room?.specialType === "escape-pod") {
+          // Cut to cockpit POV the moment the player enters the pod bay
+          window.setTimeout(() => showEscapeEnding(), 350);
+        }
+      },
       onLockedDoor: (info) => {
         showGameMessage(
           info?.message || "This door is locked and you do not have the key."
@@ -426,6 +446,7 @@ window.SpaceQuestApp = (() => {
   function returnToTitle() {
     window.SpaceQuestDialog.hide();
     window.SpaceQuestCombat.close();
+    window.SpaceQuestEscape.stop();
     window.SpaceQuestAdventure.stop();
     window.SpaceQuestInventory.reset();
     window.SpaceQuestPlayerState.reset();
@@ -460,11 +481,13 @@ window.SpaceQuestApp = (() => {
       adventure: document.getElementById("screen-adventure"),
       combat: document.getElementById("screen-combat"),
       gameover: document.getElementById("screen-gameover"),
+      escape: document.getElementById("screen-escape"),
     };
     adventureCanvas = document.getElementById("adventure-canvas");
 
     window.SpaceQuestCombat.mount(screens.combat);
     window.SpaceQuestDialog.mount(document.getElementById("game-dialog"));
+    window.SpaceQuestEscape.mount(screens.escape);
     window.SpaceQuestInventory.reset();
     window.SpaceQuestPlayerState.reset();
     mountInventoryUi();
@@ -493,6 +516,17 @@ window.SpaceQuestApp = (() => {
 
     document
       .getElementById("return-title")
+      ?.addEventListener("click", (event) => {
+        const btn = event.currentTarget;
+        btn.classList.add("is-launching");
+        window.setTimeout(() => {
+          btn.classList.remove("is-launching");
+          returnToTitle();
+        }, 400);
+      });
+
+    document
+      .getElementById("escape-return-title")
       ?.addEventListener("click", (event) => {
         const btn = event.currentTarget;
         btn.classList.add("is-launching");
